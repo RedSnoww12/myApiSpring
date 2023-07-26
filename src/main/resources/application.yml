@@ -1,0 +1,28 @@
+logging:
+  level:
+    com.etna.myapi: DEBUG
+    #    org.hibernate.SQL: DEBUG
+    #    org.hibernate.type: INFO
+    #    org.springframework.integration: INFO
+    #    org.springframework.cloud: DEBUG
+    #    org.springframework.cloud.openfeign: DEBUG
+    #    org.springframework.cloud.netflix.eureka: DEBUG
+    #    com.netflix.discovery: DEBUG
+    #    com.netflix.eureka: DEBUG
+
+server:
+  port:
+    8080
+
+spring:
+  application:
+    name: MyAPI
+
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    username: redsnoww
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mydb
+    password: Leasacha2
+    jpa:
+      hibernate:
+        ddl-auto: update

@@ -20,12 +20,16 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
     @NonNull
     private String username;
+
     @NonNull
     private String email;
+
     @NonNull
     private String password;
+
     private String pseudo;
     private Date created_at;
 

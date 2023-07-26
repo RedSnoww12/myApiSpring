@@ -1,17 +1,18 @@
 package com.etna.myapi.dto;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDto {
-    @NotNull(message = "Username is required")
-    @NotEmpty(message = "Username is required")
     private String username;
 
-    @NotNull(message = "Email is required")
-    @NotEmpty(message = "Email is required")
     private String email;
-    @NotNull(message = "Password is required")
-    @NotEmpty(message = "Password is required")
+
     private String password;
+
+    private String pseudo;
 }
