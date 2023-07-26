@@ -9,9 +9,9 @@ import javax.validation.Valid;
 
 public interface UserControllerInterface {
 
-    String POST_USER = "/user";
+    String USER = "/user";
+    String ROOT_INTERFACE = "/myapi";
 
-
-    @PostMapping(path = POST_USER)
+    @PostMapping(path = USER)
     ResponseEntity<?> createUser(@Valid @RequestBody UserDto userDto);
 }
