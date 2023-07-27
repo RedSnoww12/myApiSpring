@@ -3,6 +3,7 @@ package com.etna.myapi.controller.impl;
 import com.etna.myapi.User;
 import com.etna.myapi.controller.UserControllerInterface;
 import com.etna.myapi.dto.ResponseSuccessDto;
+import com.etna.myapi.dto.UserCreatedResponseDto;
 import com.etna.myapi.dto.UserDto;
 import com.etna.myapi.services.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,29 +54,42 @@ public class UserControllerImpl implements UserControllerInterface {
 
             log.info("recupération d'un userDTO: {}", userDto);
 
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            String hashedPassword = passwordEncoder.encode(userDto.getPassword());
+
             // create User
             User user = new User().toBuilder()
-                    .username(userDto.getUsername()) // TODO: Une erreur ici ? "username is marked non-null but is null"
+                    .username(userDto.getUsername())
                     .email(userDto.getEmail())
-                    .password(userDto.getPassword()) // TODO: Hasher le password | peut etre appeler une fonction dans la classe entity User? Bien regarder si sa existe déjà en spring
+                    .password(hashedPassword) // TODO: Hasher le password | peut etre appeler une fonction dans la classe entity User? Bien regarder si sa existe déjà en spring
                     .pseudo(userDto.getPseudo())
                     .created_at(Date.from(Instant.now()))
                     .build();
 
             log.debug("user: {}", user);
 
+            userRepository.save(user);
+
+            UserCreatedResponseDto userCreatedResponseDto =
+                    new UserCreatedResponseDto().toBuilder()
+                            .username(user.getUsername())
+                            .email(user.getEmail())
+                            .pseudo(user.getPseudo())
+                            .build();
+
             // return ResponseSuccessDto
             ResponseSuccessDto responseSuccessDto =
                     new ResponseSuccessDto().toBuilder()
                             .message("Ok")
-                            //.data(user) //TODO: Creer l'objet plus haut et Renvoyer le UserCreatedResponseDto ici
+                            .data(userCreatedResponseDto) //TODO: Creer l'objet plus haut et Renvoyer le UserCreatedResponseDto ici
                             .build();
 
             return ResponseEntity.ok(responseSuccessDto);
-
         } catch (Exception e) {
             log.warn("Error : {}", e.getMessage());
         }
         return null;
     }
+
+
 }

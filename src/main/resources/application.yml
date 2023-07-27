@@ -20,9 +20,9 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    username: redsnoww
+    username: Plantie
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mydb
-    password: Leasacha2
+    password: root
     jpa:
       hibernate:
         ddl-auto: update

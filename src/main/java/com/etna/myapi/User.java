@@ -1,9 +1,6 @@
 package com.etna.myapi;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Date;
@@ -21,13 +18,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @NonNull
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @NonNull
+    @Column(unique = true, nullable = false)
     private String email;
 
-    @NonNull
+    @Column(nullable = false)
     private String password;
 
     private String pseudo;
