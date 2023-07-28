@@ -11,11 +11,11 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(toBuilder = true)
-public class UserCreatedResponseDto {
+public class UserResponseDto {
 
-        private String username;
-        private String email;
-        private String pseudo;
-        private Date created_at;
+    private String username;
+    private String email;
+    private String pseudo;
+    private Date created_at;
 
 }

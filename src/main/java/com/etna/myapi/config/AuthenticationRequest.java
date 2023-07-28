@@ -1,4 +1,4 @@
-package com.etna.myapi.dto;
+package com.etna.myapi.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,12 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder(toBuilder = true)
-public class ResponseSuccessDto {
+public class AuthenticationRequest {
 
-    private String message;
-    private UserResponseDto data;
-
+    private String username;
+    String password;
 }

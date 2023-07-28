@@ -1,9 +1,13 @@
 package com.etna.myapi.controller.impl;
 
+import com.etna.myapi.config.AuthenticationRequest;
+import com.etna.myapi.config.AuthenticationService;
 import com.etna.myapi.controller.UserControllerInterface;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dto.*;
+import com.etna.myapi.entity.Token;
 import com.etna.myapi.entity.User;
+import com.etna.myapi.services.jwt.JwtServiceInterface;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.user.UserServiceInterface;
 import lombok.AllArgsConstructor;
@@ -38,6 +42,12 @@ public class UserControllerImpl implements UserControllerInterface {
 
     @Autowired
     private UserObjectMapper userObjectMapper;
+
+    @Autowired
+    AuthenticationService authenticationService;
+
+    @Autowired
+    JwtServiceInterface jwtService;
 
 
     public ResponseEntity<?> createUser(UserDto userDto) {
@@ -79,8 +89,16 @@ public class UserControllerImpl implements UserControllerInterface {
             log.debug("user: {}", user);
 
             userRepository.save(user);
-            UserCreatedResponseDto userCreatedResponseDto =
-                    new UserCreatedResponseDto().toBuilder()
+
+            Token token = new Token().toBuilder()
+                    .user(user)
+                    .code(jwtService.generateToken(user))
+                    .build();
+
+            log.debug("token: {}", token);
+
+            UserResponseDto userCreatedResponseDto =
+                    new UserResponseDto().toBuilder()
                             .username(user.getUsername())
                             .email(user.getEmail())
                             .pseudo(user.getPseudo())
@@ -137,5 +155,18 @@ public class UserControllerImpl implements UserControllerInterface {
 
         return ResponseEntity.status(HttpStatus.OK).body(usersPageResponseDto);
     }
+
+    @Override
+    public ResponseEntity<?> deleteUser(Long id) {
+
+        return ResponseEntity.ok("deleteUser");
+    }
+
+    @Override
+    public ResponseEntity<?> authenticate(AuthenticationRequest request) {
+        log.debug("authenticate: {}", request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.authenticate(request));
+    }
+
 
 }
