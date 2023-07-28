@@ -5,13 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder(toBuilder = true)
-public class ResponseSuccessDto {
+public class UsersPageResponseDto {
 
-    private String message;
-    private UserCreatedResponseDto data;
-
+    String message;
+    List<UserCreatedResponseDto> data;
+    PageDto pager;
 }

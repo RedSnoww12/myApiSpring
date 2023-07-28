@@ -1,4 +1,4 @@
-package com.etna.myapi;
+package com.etna.myapi.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
