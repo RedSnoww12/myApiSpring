@@ -1,10 +1,8 @@
 package com.etna.myapi.controller.impl;
 
 import com.etna.myapi.controller.UserControllerInterface;
-import com.etna.myapi.dto.ResponseSuccessDto;
-import com.etna.myapi.dto.UserCreatedResponseDto;
-import com.etna.myapi.dto.UserDto;
-import com.etna.myapi.dto.UsersPageResponseDto;
+import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
+import com.etna.myapi.dto.*;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.user.UserServiceInterface;
@@ -21,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.etna.myapi.controller.UserControllerInterface.ROOT_INTERFACE;
 
@@ -36,8 +36,8 @@ public class UserControllerImpl implements UserControllerInterface {
     @Autowired
     private UserServiceInterface userService;
 
-    //@Autowired
-    //private UserObjectMapper userObjectMapper;
+    @Autowired
+    private UserObjectMapper userObjectMapper;
 
 
     public ResponseEntity<?> createUser(UserDto userDto) {
@@ -84,6 +84,7 @@ public class UserControllerImpl implements UserControllerInterface {
                             .username(user.getUsername())
                             .email(user.getEmail())
                             .pseudo(user.getPseudo())
+                            .created_at(user.getCreated_at())
                             .build();
 
             // return ResponseSuccessDto
@@ -100,7 +101,7 @@ public class UserControllerImpl implements UserControllerInterface {
         return null;
     }
 
-    public ResponseEntity<?> allUsers(String pseudo, int page, int perPage) {
+    public ResponseEntity<?> allUsers(Optional<String> pseudo, int page, int perPage) {
         boolean isPseudo = true;
         Page<User> users = null;
         if (page <= 0) {
@@ -109,22 +110,32 @@ public class UserControllerImpl implements UserControllerInterface {
         if (perPage <= 0) {
             return null;
         }
-        if (pseudo.isEmpty()) {
+        if (pseudo.isEmpty() || pseudo.get().isEmpty()) {
             isPseudo = false;
         }
         if (isPseudo) {
-            return null;
+            log.debug("retrieve with pseudo");
+            users = userService.getAllUser(page - 1, perPage, pseudo.get());
         } else {
-            users = userService.getAllUser(page, perPage);
+            log.debug("retrieve without pseudo");
+            users = userService.getAllUser(page - 1, perPage);
+            log.debug("users: {}", users.get().collect(Collectors.toList()));
         }
         UsersPageResponseDto usersPageResponseDto = new UsersPageResponseDto().toBuilder()
                 .message("ok")
-                //.data(users.get().map(
-                //user -> userObjectMapper.toCreatedResponseDto(user)
-                //)
-                //.collect(Collectors.toList()))
+                .data(users.get()
+                        .map(
+                                user -> userObjectMapper.toCreatedResponseDto(user)
+                        )
+                        .collect(Collectors.toList()))
+                .pager(new PageDto().toBuilder()
+                        .current(users.getNumber() + 1)
+                        .total(users.getTotalPages())
+                        .build()
+                )
                 .build();
-        return null;
+
+        return ResponseEntity.status(HttpStatus.OK).body(usersPageResponseDto);
     }
 
 }

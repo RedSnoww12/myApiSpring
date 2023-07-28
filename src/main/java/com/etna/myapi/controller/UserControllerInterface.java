@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.validation.Valid;
+import java.util.Optional;
 
 public interface UserControllerInterface {
 
@@ -20,7 +21,7 @@ public interface UserControllerInterface {
     ResponseEntity<?> createUser(@Valid @RequestBody UserDto userDto);
 
     @GetMapping(path = USERS)
-    ResponseEntity<?> allUsers(@RequestParam() String pseudo, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int perPage);
+    ResponseEntity<?> allUsers(@RequestParam() Optional<String> pseudo, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int perPage);
 
 
 }

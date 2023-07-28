@@ -20,4 +20,10 @@ public class UserServiceImpl implements UserServiceInterface {
         return userRepository.findAll(pageable);
     }
 
+    @Override
+    public Page<User> getAllUser(int page, int size, String pseudo) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.findByPseudoContainingIgnoreCase(pseudo, pageable);
+    }
+
 }
