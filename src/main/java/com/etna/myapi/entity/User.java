@@ -2,7 +2,10 @@ package com.etna.myapi.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
 import java.util.Date;
 
 @Data
@@ -13,7 +16,8 @@ import java.util.Date;
 @Builder(toBuilder = true)
 @Setter
 @Entity
-public class User {
+@Table(name = "user")
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -30,4 +34,31 @@ public class User {
     private String pseudo;
     private Date created_at;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Token token;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return null;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return false;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return false;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
+    }
 }

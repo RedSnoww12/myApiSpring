@@ -14,6 +14,6 @@ import java.util.List;
 public class UsersPageResponseDto {
 
     String message;
-    List<UserCreatedResponseDto> data;
+    List<UserResponseDto> data;
     PageDto pager;
 }

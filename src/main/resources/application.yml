@@ -19,10 +19,14 @@ spring:
     name: MyAPI
 
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    username: Plantie
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: redsnoww
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mydb
-    password: root
+    password: Leasacha2
     jpa:
       hibernate:
         ddl-auto: update
+      database: mysql
+      database-platform: org.hibernate.dialect.MySQL5Dialect
+    hikari:
+      driver-class-name: com.mysql.jdbc.Driver
