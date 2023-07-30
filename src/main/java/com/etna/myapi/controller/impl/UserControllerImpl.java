@@ -150,6 +150,18 @@ public class UserControllerImpl implements UserControllerInterface {
             log.debug("users: {}", users.get().collect(Collectors.toList()));
         }
 
+        // if page > total page
+        if (page > users.getTotalPages() && users.getTotalPages() > 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Page out of range",
+                                    "totalPages", String.valueOf(users.getTotalPages())
+                            )
+                    )
+            );
+        }
+
         UsersPageResponseDto usersPageResponseDto = new UsersPageResponseDto().toBuilder()
                 .message("ok")
                 .data(users.get()
