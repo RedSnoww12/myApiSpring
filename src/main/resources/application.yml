@@ -19,7 +19,7 @@ spring:
     name: MyAPI
 
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
     username: redsnoww
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mydb
     password: Leasacha2

@@ -1,12 +1,12 @@
 package com.etna.myapi.controller.impl;
 
-import com.etna.myapi.config.AuthenticationRequest;
-import com.etna.myapi.config.AuthenticationService;
+
 import com.etna.myapi.controller.UserControllerInterface;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dto.*;
-import com.etna.myapi.entity.Token;
 import com.etna.myapi.entity.User;
+import com.etna.myapi.security.CustomUserDetailsService;
+import com.etna.myapi.security.JWTGenerator;
 import com.etna.myapi.services.jwt.JwtServiceInterface;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.user.UserServiceInterface;
@@ -17,7 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,10 +50,19 @@ public class UserControllerImpl implements UserControllerInterface {
     private UserObjectMapper userObjectMapper;
 
     @Autowired
-    AuthenticationService authenticationService;
+    JwtServiceInterface jwtService;
 
     @Autowired
-    JwtServiceInterface jwtService;
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    CustomUserDetailsService userDetailsService;
+
+    @Autowired
+    JWTGenerator jwtGenerator;
 
 
     public ResponseEntity<?> createUser(UserDto userDto) {
@@ -74,7 +89,7 @@ public class UserControllerImpl implements UserControllerInterface {
 
             log.info("recupération d'un userDTO: {}", userDto);
 
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            // hash password
             String hashedPassword = passwordEncoder.encode(userDto.getPassword());
 
             // create User
@@ -89,13 +104,6 @@ public class UserControllerImpl implements UserControllerInterface {
             log.debug("user: {}", user);
 
             userRepository.save(user);
-
-            Token token = new Token().toBuilder()
-                    .user(user)
-                    .code(jwtService.generateToken(user))
-                    .build();
-
-            log.debug("token: {}", token);
 
             UserResponseDto userCreatedResponseDto =
                     new UserResponseDto().toBuilder()
@@ -139,6 +147,7 @@ public class UserControllerImpl implements UserControllerInterface {
             users = userService.getAllUser(page - 1, perPage);
             log.debug("users: {}", users.get().collect(Collectors.toList()));
         }
+
         UsersPageResponseDto usersPageResponseDto = new UsersPageResponseDto().toBuilder()
                 .message("ok")
                 .data(users.get()
@@ -157,15 +166,39 @@ public class UserControllerImpl implements UserControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> deleteUser(Long id) {
-
-        return ResponseEntity.ok("deleteUser");
+    public ResponseEntity<?> getUser(Long id) {
+        return ResponseEntity.ok("getUser");
     }
 
     @Override
-    public ResponseEntity<?> authenticate(AuthenticationRequest request) {
-        log.debug("authenticate: {}", request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.authenticate(request));
+    public ResponseEntity<?> deleteUser(Long id) {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return ResponseEntity.ok("deleteUser : " + username);
+    }
+
+    @Override
+    public ResponseEntity<?> authenticate(LoginDto request) {
+        try {
+            log.debug("authenticate: {}", request);
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+
+            String token = jwtGenerator.generateToken(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponseDto("OK", token));
+
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto("Username or password incorrect.", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto(e.getMessage(), null));
+        }
+
     }
 
 
