@@ -25,10 +25,10 @@ public interface UserControllerInterface {
     ResponseEntity<?> allUsers(@RequestParam() Optional<String> pseudo, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int perPage);
 
     @GetMapping(path = USER_ID)
-    ResponseEntity<?> getUser(@PathVariable Long id);
+    ResponseEntity<?> getUser(@PathVariable Integer id);
 
     @DeleteMapping(path = USER_ID)
-    ResponseEntity<?> deleteUser(@PathVariable Long id);
+    ResponseEntity<?> deleteUser(@PathVariable Integer id);
 
     @PostMapping(path = AUTH)
     ResponseEntity<?> authenticate(@Valid @RequestBody LoginDto request);
