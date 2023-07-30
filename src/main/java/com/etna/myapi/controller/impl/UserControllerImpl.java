@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -148,6 +150,18 @@ public class UserControllerImpl implements UserControllerInterface {
             log.debug("users: {}", users.get().collect(Collectors.toList()));
         }
 
+        // if page > total page
+        if (page > users.getTotalPages() && users.getTotalPages() > 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Page out of range",
+                                    "totalPages", String.valueOf(users.getTotalPages())
+                            )
+                    )
+            );
+        }
+
         UsersPageResponseDto usersPageResponseDto = new UsersPageResponseDto().toBuilder()
                 .message("ok")
                 .data(users.get()
@@ -166,16 +180,48 @@ public class UserControllerImpl implements UserControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> getUser(Long id) {
+    public ResponseEntity<?> getUser(Integer id) {
         return ResponseEntity.ok("getUser");
     }
 
     @Override
-    public ResponseEntity<?> deleteUser(Long id) {
+    public ResponseEntity<?> deleteUser(Integer id) {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            Optional<User> user = userRepository.findById(id);
 
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (user.isEmpty()) {
+                /*
+                *   {
+                        "message": "Not found"
+                    }
+                * */
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new HashMap<>(
+                        Map.of("message", "Not found")
+                ));
+            }
 
-        return ResponseEntity.ok("deleteUser : " + username);
+            if (!user.get().getUsername().equals(username)) {
+                /*
+                *   {
+                        "message": "Forbidden"
+                    }
+                * */
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new HashMap<>(
+                        Map.of("message", "Forbidden")
+                ));
+            }
+
+            // delete user in db
+            userRepository.delete(user.get());
+
+            // Return 204
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+
+        } catch (Exception e) {
+            log.warn("Error : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
 
     @Override
