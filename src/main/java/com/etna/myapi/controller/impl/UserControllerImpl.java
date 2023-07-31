@@ -247,5 +247,4 @@ public class UserControllerImpl implements UserControllerInterface {
 
     }
 
-
 }
