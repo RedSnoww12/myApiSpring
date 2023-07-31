@@ -8,4 +8,6 @@ public interface UserServiceInterface {
     Page<User> getAllUser(int page, int size);
 
     Page<User> getAllUser(int page, int size, String pseudo);
+
+    Boolean isUser(Integer id);
 }

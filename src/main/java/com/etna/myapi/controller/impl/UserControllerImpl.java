@@ -244,10 +244,6 @@ public class UserControllerImpl implements UserControllerInterface {
     @Override
     public ResponseEntity<?> authenticate(LoginDto request) {
         try {
-            log.debug("authenticate: {}", request);
-            log.debug("authenticate: {}", request.getLogin());
-            log.debug("authenticate: {}", request.getPassword());
-
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getLogin(),

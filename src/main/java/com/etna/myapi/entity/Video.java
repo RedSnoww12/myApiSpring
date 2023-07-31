@@ -23,7 +23,6 @@ public class Video {
     @NonNull
     private String name;
 
-
     @Column(nullable = false)
     @NonNull
     private Integer duration;
@@ -31,6 +30,10 @@ public class Video {
     @Column(nullable = false)
     @NonNull
     private Date created_at;
+
+    @Column(nullable = false)
+    @NonNull
+    private String source;
 
     @NonNull
     @ManyToOne
