@@ -20,8 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -187,10 +187,12 @@ public class UserControllerImpl implements UserControllerInterface {
     @Override
     public ResponseEntity<?> deleteUser(Integer id) {
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            Optional<User> user = userRepository.findById(id);
+            String login = SecurityContextHolder.getContext().getAuthentication().getName();
+            log.debug("login: {}", login);
 
-            if (user.isEmpty()) {
+            Optional<User> ouser = userRepository.findById(id);
+
+            if (ouser.isEmpty()) {
                 /*
                 *   {
                         "message": "Not found"
@@ -201,7 +203,22 @@ public class UserControllerImpl implements UserControllerInterface {
                 ));
             }
 
-            if (!user.get().getUsername().equals(username)) {
+            User user = ouser.get();
+
+            String userUsername = user.getUsername();
+            String userEmail = user.getEmail();
+
+
+            if (!userUsername.equals(login)
+                    && !userEmail.equals(login)) {
+
+                log.debug("userUsername: {}", userUsername);
+                log.debug("userEmail: {}", userEmail);
+                log.debug("login: {}", login);
+
+                log.debug("compare with username: {}", userUsername.equals(login));
+                log.debug("compare with email: {}", userEmail.equals(login));
+
                 /*
                 *   {
                         "message": "Forbidden"
@@ -213,7 +230,7 @@ public class UserControllerImpl implements UserControllerInterface {
             }
 
             // delete user in db
-            userRepository.delete(user.get());
+            userRepository.delete(user);
 
             // Return 204
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
@@ -228,20 +245,29 @@ public class UserControllerImpl implements UserControllerInterface {
     public ResponseEntity<?> authenticate(LoginDto request) {
         try {
             log.debug("authenticate: {}", request);
+            log.debug("authenticate: {}", request.getLogin());
+            log.debug("authenticate: {}", request.getPassword());
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
+                            request.getLogin(),
                             request.getPassword()));
+
+            log.debug("authenticate: {}", authentication.getName());
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+            //UserDetails userDetails = userDetailsService.loadUserByUsername(request.getLogin());
 
             String token = jwtGenerator.generateToken(authentication);
             return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponseDto("OK", token));
 
         } catch (UsernameNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto("Username or password incorrect.", null));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto("Login or password incorrect.", null));
         } catch (Exception e) {
+            log.debug("Error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto(e.getMessage(), null));
         }
 
