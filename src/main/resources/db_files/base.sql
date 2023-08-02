@@ -12,7 +12,7 @@ USE `mydb`;
 
 -- ----------------------------------------------------- -- TABLE `mydb`.`user` -- -----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS `mydb`.`user` ( `id` INT NOT NULL, `username` VARCHAR(45) NOT NULL, `email` VARCHAR(45) NOT NULL, `pseudo` VARCHAR(45) NULL, `password` VARCHAR(45) NOT NULL, `created_at` DATETIME NOT NULL, PRIMARY KEY (`id`), UNIQUE INDEX `email_UNIQUE` (`email` ASC), UNIQUE INDEX `username_UNIQUE` (`username` ASC)) ENGINE = InnoDB; -- ----------------------------------------------------- -- TABLE `mydb`.`video` -- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`user` ( `id` INT NOT NULL, `username` VARCHAR(45) NOT NULL, `email` VARCHAR(45) NOT NULL, `pseudo` VARCHAR(255) NULL, `password` VARCHAR(255) NOT NULL, `created_at` DATETIME NOT NULL, PRIMARY KEY (`id`), UNIQUE INDEX `email_UNIQUE` (`email` ASC), UNIQUE INDEX `username_UNIQUE` (`username` ASC)) ENGINE = InnoDB; -- ----------------------------------------------------- -- TABLE `mydb`.`video` -- -----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `mydb`.`video` ( `id` INT NOT NULL, `name` VARCHAR(45) NOT NULL, `duration` INT NULL, `user_id` INT NOT NULL, `source` VARCHAR(45) NOT NULL, `created_at` DATETIME NOT NULL, `view` INT NOT NULL, `enabled` TINYINT(1) NOT NULL, PRIMARY KEY (`id`), INDEX `fk_video_user_idx` (`user_id` ASC), CONSTRAINT `fk_video_user` FOREIGN KEY (`user_id`) REFERENCES `mydb`.`user` (`id`)
     ON
