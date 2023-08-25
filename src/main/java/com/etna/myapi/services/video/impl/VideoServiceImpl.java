@@ -5,6 +5,7 @@ import com.etna.myapi.entity.Video;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.repository.VideoRepository;
 import com.etna.myapi.services.video.VideoServiceInterface;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Log4j2
 public class VideoServiceImpl implements VideoServiceInterface {
 
     @Autowired
@@ -32,8 +34,17 @@ public class VideoServiceImpl implements VideoServiceInterface {
 
     @Override
     public Page<Video> getAllVideo(int page, int size, Optional<String> videoName, Optional<Integer> duration, Optional<User> user) {
-        Pageable pageable = Pageable.ofSize(size).withPage(page);
+
+        if (page < 1) page = 1;
+
+        if (size < 1) size = 1;
+
+        Pageable pageable = Pageable.ofSize(size).withPage(page - 1);
         Page<Video> pvideos = videoRepository.findAll(pageable);
+
+        log.debug("video from getAllVideo: {}", pvideos.get().collect(Collectors.toList()));
+
+        pvideos.get().peek(video -> log.info(video.getName()));
 
         // filter videos by videoName if not null, duration if not 0, user if not null
         List<Video> videos = pvideos.get().filter(

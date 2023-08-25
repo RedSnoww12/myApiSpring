@@ -95,6 +95,11 @@
             <version>4.0.1</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.humble</groupId>
+            <artifactId>humble-video-all</artifactId>
+            <version>0.3.0</version>
+        </dependency>
     </dependencies>
 
 	<build>
@@ -138,5 +143,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
