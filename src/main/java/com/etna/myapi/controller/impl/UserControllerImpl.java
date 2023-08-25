@@ -129,7 +129,7 @@ public class UserControllerImpl implements UserControllerInterface {
         return null;
     }
 
-    public ResponseEntity<?> allUsers(Optional<String> pseudo, int page, int perPage) {
+    public ResponseEntity<?> AllUser(Optional<String> pseudo, int page, int perPage) {
         boolean isPseudo = true;
         Page<User> users = null;
         if (page <= 0) {
@@ -180,8 +180,16 @@ public class UserControllerImpl implements UserControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> getUser(Integer id) {
-        return ResponseEntity.ok("getUser");
+    public ResponseEntity<?> getUserById(Integer id) {
+        try{
+            Optional<User> user = userRepository.findById(id);
+            return ResponseEntity.ok(user);
+        }catch (Exception e){
+            log.warn("Error : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+
+
     }
 
     @Override
