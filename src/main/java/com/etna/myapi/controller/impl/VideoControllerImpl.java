@@ -3,7 +3,9 @@ package com.etna.myapi.controller.impl;
 import com.etna.myapi.controller.VideoControllerInterface;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dataobjects.mappers.VideoObjectMapper;
+import com.etna.myapi.dto.PageDto;
 import com.etna.myapi.dto.VideoResponseDto;
+import com.etna.myapi.dto.VideosPageResponseDto;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
 import com.etna.myapi.services.repository.UserRepository;
@@ -15,7 +17,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -262,22 +263,24 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // get all videos by user
             Page<Video> videos = videoService.getAllVideo(page, perPage, name, duration, oUser);
 
-            videos.get().peek(video -> log.debug("video : {}", video));
 
-            // create the VideoResponseDto with mapper
-            Page<VideoResponseDto> reponseVideos = new PageImpl<>(videos.get()
-                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                    .collect(Collectors.toList()), videos.getPageable(), videos.getTotalElements());
+            VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
+                    .message("OK")
+                    .data(
+                            videos.get()
+                                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                                    .collect(Collectors.toList())
+                    )
+                    .pager(
+                            new PageDto().toBuilder()
+                                    .current(videos.getNumber() + 1)
+                                    .total(videos.getTotalPages())
+                                    .build()
+                    )
+                    .build();
 
             // return 200 OK with data : videos and pagination
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    new HashMap<>(
-                            Map.of(
-                                    "message", "OK",
-                                    "data", reponseVideos
-                            )
-                    )
-            );
+            return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
 
         } catch (NumberFormatException e) {
             try {
@@ -304,19 +307,23 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
                 log.debug("videos : {}", videos.get().collect(Collectors.toList()));
 
-                Page<VideoResponseDto> reponseVideos = new PageImpl<>(videos.get()
-                        .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                        .collect(Collectors.toList()), videos.getPageable(), videos.getTotalElements());
+                VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
+                        .message("OK")
+                        .data(
+                                videos.get()
+                                        .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                                        .collect(Collectors.toList())
+                        )
+                        .pager(
+                                new PageDto().toBuilder()
+                                        .current(videos.getNumber() + 1)
+                                        .total(videos.getTotalPages())
+                                        .build()
+                        )
+                        .build();
 
                 // return 200 OK with data : videos and pagination
-                return ResponseEntity.status(HttpStatus.OK).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "OK",
-                                        "data", reponseVideos
-                                )
-                        )
-                );
+                return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
 
             } catch (Exception ex) {
                 return ResponseEntity.status(500).body(
@@ -495,6 +502,62 @@ public class VideoControllerImpl implements VideoControllerInterface {
                             )
                     )
             );
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Internal server error : " + e.getMessage(),
+                                    "data", List.of()
+                            )
+                    )
+            );
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getVideosByUser(Integer id, int page, int perPage) {
+        try {
+            log.info("Reception de la requête de récupération des vidéos d'un utilisateur");
+
+            // get the user by id
+            Optional<User> user = userRepository.findById(id);
+
+            // if user not found return 404 Not Found
+            if (user.isEmpty())
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Not Found",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // get all videos by user
+            Page<Video> videos = videoService.getAllVideosByUser(page, perPage, user.get());
+
+            if (videos.isEmpty())
+                log.debug("videos is empty");
+
+            // create the VideosPageResponseDto
+            VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
+                    .message("OK")
+                    .data(
+                            videos.get()
+                                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                                    .collect(Collectors.toList())
+                    )
+                    .pager(
+                            new PageDto().toBuilder()
+                                    .current(videos.getNumber() + 1)
+                                    .total(videos.getTotalPages())
+                                    .build()
+                    )
+                    .build();
+
+            // return 200 OK with data : videos and pagination
+            return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(

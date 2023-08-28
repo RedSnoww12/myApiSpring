@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Log4j2
@@ -42,8 +41,6 @@ public class VideoServiceImpl implements VideoServiceInterface {
         Pageable pageable = Pageable.ofSize(size).withPage(page - 1);
         Page<Video> pvideos = videoRepository.findAll(pageable);
 
-        log.debug("video from getAllVideo: {}", pvideos.get().collect(Collectors.toList()));
-
         pvideos.get().peek(video -> log.info(video.getName()));
 
         // filter videos by videoName if not null, duration if not 0, user if not null
@@ -55,9 +52,16 @@ public class VideoServiceImpl implements VideoServiceInterface {
             video -> user.isEmpty() || video.getUser().equals(user.get())
         ).toList();
 
+
         // Build a new Page<Video> from the filtered videos
         return new PageImpl<>(videos, pageable, videos.size());
 
+    }
+
+    @Override
+    public Page<Video> getAllVideosByUser(int page, int size, User user) {
+        Pageable pageable = Pageable.ofSize(size).withPage(page);
+        return new PageImpl<>(user.getVideos(), pageable, user.getVideos().size());
     }
 
 }

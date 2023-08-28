@@ -11,6 +11,8 @@ public interface VideoServiceInterface {
 
     Page<Video> getAllVideo(int page, int size, Optional<String> videoName, Optional<Integer> duration, Optional<User> user);
 
+    Page<Video> getAllVideosByUser(int page, int size, User user);
+
 
 
 

@@ -39,4 +39,10 @@ public interface VideoControllerInterface {
                                   @RequestParam("name") Optional<String> name,
                                   @RequestParam("user") Optional<Integer> UserId
     );
+
+    @GetMapping(path = USER_ID + VIDEOS)
+    ResponseEntity<?> getVideosByUser(@PathVariable Integer id,
+                                      @RequestParam(value = "page", defaultValue = "1") int page,
+                                      @RequestParam(value = "perPage", defaultValue = "5") int perPage
+    );
 }
