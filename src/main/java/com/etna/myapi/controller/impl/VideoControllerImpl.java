@@ -398,5 +398,115 @@ public class VideoControllerImpl implements VideoControllerInterface {
         }
     }
 
+    @Override
+    public ResponseEntity<?> updateVideo(Integer id, Optional<String> name, Optional<Integer> UserId) {
+        try {
+            log.info("Reception de la requête de modification d'une vidéo");
+
+            // get the video by id
+            Optional<Video> video = videoRepository.findById(id);
+
+            // if video not found return 404 Not Found
+            if (video.isEmpty())
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Not Found",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // check if the video is the user's video
+            if (!userService.isUser(video.get().getUser().getId()))
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Forbidden",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // if the userId doesn't exist return 404 Not Found
+            if (UserId.isPresent() && userRepository.findById(UserId.get()).isEmpty())
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Not Found",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // update the video
+            if (name.isPresent()) {
+                // edit the filename in resources/videos
+                File file = new File("src/main/resources/" + video.get().getSource());
+                String extension = Objects.requireNonNull(file.getName()).substring(file.getName().lastIndexOf("."));
+                File newFile = new File("src/main/resources/videos/" + name.get() + extension);
+                if (file.renameTo(newFile))
+                    log.info("Fichier renommé");
+                else
+                    log.error("Erreur lors du renommage du fichier");
+
+                // update the source in database
+                video.get().setName(name.get());
+                // update the source in database
+                video.get().setSource("videos/" + name.get() + extension);
+            }
+
+
+            // update the user in database
+            if (UserId.isPresent()) {
+                // get the user by id
+                Optional<User> user = userRepository.findById(UserId.get());
+
+                log.debug("id : {}", UserId.get());
+
+                log.debug("user : {}", user.get());
+
+                // if user not found return 404 Not Found
+                if (user.isEmpty())
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                            new HashMap<>(
+                                    Map.of(
+                                            "message", "Not Found",
+                                            "data", List.of()
+                                    )
+                            )
+                    );
+
+                video.get().setUser(user.get());
+            }
+
+            // save the video in database
+            videoRepository.save(video.get());
+
+            // convert the video to VideoResponseDto
+            VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video.get());
+
+            // return 200 OK with data : video
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "OK",
+                                    "data", videoResponseDto
+                            )
+                    )
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Internal server error : " + e.getMessage(),
+                                    "data", List.of()
+                            )
+                    )
+            );
+        }
+    }
+
 
 }

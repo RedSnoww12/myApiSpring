@@ -27,10 +27,16 @@ public interface VideoControllerInterface {
             @RequestParam(value = "perPage", defaultValue = "5") int perPage,
             @RequestParam(value = "name") Optional<String> name,
             // User can be a String or an Integer
-@           RequestParam(value = "user") Optional<String> user,
+            @RequestParam(value = "user") Optional<String> user,
             @RequestParam(value = "duration") Optional<Integer> duration
     );
 
     @DeleteMapping(path = VIDEO_ID)
     ResponseEntity<?> deleteVideo(@PathVariable Integer id);
+
+    @PutMapping(path = VIDEO_ID)
+    ResponseEntity<?> updateVideo(@PathVariable Integer id,
+                                  @RequestParam("name") Optional<String> name,
+                                  @RequestParam("user") Optional<Integer> UserId
+    );
 }
