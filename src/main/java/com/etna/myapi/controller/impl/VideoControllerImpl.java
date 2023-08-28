@@ -138,7 +138,14 @@ public class VideoControllerImpl implements VideoControllerInterface {
             if (userService.isUser(id)) {
                 if (userRepository.findById(id).isPresent())
                     video.user(userRepository.findById(id).get());
-                else
+                else {
+                    // delete the file if it was created
+                    if (file.exists()) {
+                        if (file.delete())
+                            log.info("Fichier supprimé");
+                        else
+                            log.error("Erreur lors de la suppression du fichier");
+                    }
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                             new HashMap<>(
                                     Map.of(
@@ -147,7 +154,16 @@ public class VideoControllerImpl implements VideoControllerInterface {
                                     )
                             )
                     );
+                }
             } else {
+                // delete the file if it was created
+                if (file.exists()) {
+                    if (file.delete())
+                        log.info("Fichier supprimé");
+                    else
+                        log.error("Erreur lors de la suppression du fichier");
+                }
+
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                         new HashMap<>(
                                 Map.of(
