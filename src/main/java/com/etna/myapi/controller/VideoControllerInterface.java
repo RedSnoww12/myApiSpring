@@ -1,10 +1,7 @@
 package com.etna.myapi.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
@@ -33,4 +30,7 @@ public interface VideoControllerInterface {
 @           RequestParam(value = "user") Optional<String> user,
             @RequestParam(value = "duration") Optional<Integer> duration
     );
+
+    @DeleteMapping(path = VIDEO_ID)
+    ResponseEntity<?> deleteVideo(@PathVariable Integer id);
 }

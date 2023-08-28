@@ -340,5 +340,63 @@ public class VideoControllerImpl implements VideoControllerInterface {
         }
     }
 
+    @Override
+    public ResponseEntity<?> deleteVideo(Integer id) {
+        try {
+            log.info("Reception de la requête de suppression d'une vidéo");
+
+            // get the video by id
+            Optional<Video> video = videoRepository.findById(id);
+
+            // if video not found return 404 Not Found
+            if (video.isEmpty())
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Not Found",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // check if the video is the user's video
+            if (!userService.isUser(video.get().getUser().getId()))
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        new HashMap<>(
+                                Map.of(
+                                        "message", "Forbidden",
+                                        "data", List.of()
+                                )
+                        )
+                );
+
+            // delete the file
+            File file = new File("src/main/resources/" + video.get().getSource());
+            if (file.exists()) {
+                if (file.delete())
+                    log.info("Fichier supprimé");
+                else
+                    log.error("Erreur lors de la suppression du fichier");
+            }
+
+            // delete the video in database
+            videoRepository.delete(video.get());
+            log.info("Vidéo supprimée en base de données");
+
+            // return 200 OK
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Internal server error : " + e.getMessage(),
+                                    "data", List.of()
+                            )
+                    )
+            );
+        }
+    }
+
 
 }
