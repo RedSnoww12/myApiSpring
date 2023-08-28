@@ -183,7 +183,16 @@ public class UserControllerImpl implements UserControllerInterface {
     public ResponseEntity<?> getUserById(Integer id) {
         try{
             Optional<User> user = userRepository.findById(id);
-            return ResponseEntity.ok(user);
+            // Convert the user to UserResponseDto
+            UserResponseDto userResponseDto = userObjectMapper.toCreatedResponseDto(user.get());
+            // return ResponseSuccessDto
+            ResponseSuccessDto responseSuccessDto =
+                    new ResponseSuccessDto().toBuilder()
+                            .message("Ok")
+                            .data(userResponseDto)
+                            .build();
+
+            return ResponseEntity.status(HttpStatus.OK).body(responseSuccessDto);
         }catch (Exception e){
             log.warn("Error : {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
