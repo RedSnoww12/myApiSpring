@@ -2,9 +2,12 @@ package com.etna.myapi.controller.impl;
 
 import com.etna.myapi.controller.CommentControllerInterface;
 import com.etna.myapi.dto.CommentDto;
+import com.etna.myapi.dto.CommentsPageResponseDto;
+import com.etna.myapi.dto.PageDto;
 import com.etna.myapi.entity.Comment;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
+import com.etna.myapi.services.comment.CommentServiceInterface;
 import com.etna.myapi.services.repository.CommentRepository;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.repository.VideoRepository;
@@ -14,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +46,8 @@ public class CommentController implements CommentControllerInterface {
     UserRepository userRepository;
     @Autowired
     UserServiceInterface userServiceInterface;
+    @Autowired
+    CommentServiceInterface commentServiceInterface;
 
     @Override
     public ResponseEntity<?> createComment(Integer id, CommentDto comment) {
@@ -110,7 +116,7 @@ public class CommentController implements CommentControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> getCommentsOfVideo(Integer id) {
+    public ResponseEntity<?> getCommentsOfVideo(Integer id, int page, int perPage) {
         // get the video by id
         Optional<Video> ovideo = videoRepository.findById(id);
 
@@ -121,21 +127,48 @@ public class CommentController implements CommentControllerInterface {
 
         Video video = ovideo.get();
 
+        // check page and perPage
+        if (page < 1 || perPage < 1)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
+                    Map.of("message", "Bad request",
+                            "code", 10001,
+                            "data", List.of("page or perPage is inferior to 1")
+                    )
+            ));
+
+        if (page == 1)
+            page = 0;
+        else
+            page = page - 1;
+
         // get the comments of the video
-        List<Comment> comments = video.getComments();
+        //List<Comment> comments = video.getComments();
+        Page<Comment> pcomments = commentServiceInterface.getAllCommentOfVideo(page, perPage, video);
+
+        // page out of range
+        if (page + 1 > pcomments.getTotalPages())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
+                    Map.of("message", "Bad request",
+                            "code", 10002,
+                            "data", List.of("page out of range")
+                    )
+            ));
 
         // Convert the comments to DTO
-        List<CommentDto> commentsDto = comments.stream().map(
+        List<CommentDto> commentsDto = pcomments.stream().map(
                 comment -> CommentDto.builder()
                         .body(comment.getBody())
                         .build()
         ).toList();
 
+        // create the pagerCommentsDto
+        CommentsPageResponseDto commentsPageResponseDto = CommentsPageResponseDto.builder()
+                .message("OK")
+                .data(commentsDto)
+                .pager(new PageDto().toBuilder().current(page + 1).total(pcomments.getTotalPages()).build())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(new HashMap<>(
-                Map.of("message", "OK",
-                        "data", commentsDto
-                )
-        ));
+
+        return ResponseEntity.status(HttpStatus.OK).body(commentsPageResponseDto);
     }
 }
