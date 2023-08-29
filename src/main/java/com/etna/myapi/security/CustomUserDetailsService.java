@@ -29,8 +29,6 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         UserDetails userDetails = null;
 
-        log.debug("Load user by username: " + login);
-
         User user = userRepository.findByUsername(login);
 
         if (user == null) {

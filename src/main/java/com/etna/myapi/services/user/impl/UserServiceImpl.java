@@ -48,4 +48,17 @@ public class UserServiceImpl implements UserServiceInterface {
                 || userEmail.equals(login);
     }
 
+    @Override
+    public User getUserFromAuth() {
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByUsername(login);
+
+        if (user == null) {
+            user = userRepository.findByEmail(login);
+        }
+
+        return user;
+    }
+
 }

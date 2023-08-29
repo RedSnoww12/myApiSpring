@@ -49,10 +49,10 @@ public class Video {
     @NonNull
     private Boolean enabled;
 
-    @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Comment> comments;
 
-    @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<VideoFormat> videoFormats;
 
 }
