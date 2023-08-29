@@ -10,8 +10,8 @@ import java.util.Optional;
 
 public interface UserControllerInterface {
 
-    String USER = "/user";
-    String USER_ID = "/user/{id}";
+    static String USER = "/user";
+    static String USER_ID = "/user/{id}";
     String USERS = "/users";
     String AUTH = "/auth";
 

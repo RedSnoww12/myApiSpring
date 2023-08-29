@@ -14,4 +14,8 @@ public interface UserRepository extends CrudRepository<User, Integer> {
     Page<User> findByPseudoContainingIgnoreCase(String pseudo, Pageable pageable);
 
     User findByUsername(String username);
+
+    User findByEmail(String email);
+
+    User findByPseudo(String pseudo);
 }

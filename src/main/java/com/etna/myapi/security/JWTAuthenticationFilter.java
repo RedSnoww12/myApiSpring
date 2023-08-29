@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Log4j2
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
@@ -29,20 +30,47 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     jakarta.servlet.FilterChain filterChain) throws ServletException, IOException {
         try {
-            String token = getJWTFromRequest(request);
-            if (StringUtils.hasText(token) && tokenGenerator.validateToken(token)) {
-                String username = tokenGenerator.getUsernameFromJWT(token);
 
-                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null,
-                        null);
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            Boolean testEmail = true;
+            Boolean userFind = false;
+
+            String token = getJWTFromRequest(request);
+
+            if (StringUtils.hasText(token) && tokenGenerator.validateToken(token)) {
+                String login = tokenGenerator.getLoginFromJWT(token);
+
+                Optional<UserDetails> userDetails = Optional.ofNullable(customUserDetailsService.loadUserByUsername(login));
+
+                if (userDetails.isPresent()) {
+                    testEmail = false;
+                    userFind = true;
+                }
+
+                if (testEmail) {
+                    log.debug("User not found by username: " + login);
+                    userDetails = Optional.ofNullable(customUserDetailsService.loadUserByEmail(login));
+                    log.debug("User found by email: " + login);
+
+                    if (userDetails.isPresent()) {
+                        userFind = true;
+                    }
+                }
+
+                if (userFind) {
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails.get(), null,
+                            null);
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
             }
             filterChain.doFilter(request, response);
         } catch (AuthenticationCredentialsNotFoundException e) {
             log.warn("AuthenticationCredentialsNotFoundException: " + e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+            //response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"message\": \"Unauthorized\"}");
+            // return response with message {"message": "Unauthorized"}
+
         }
     }
 

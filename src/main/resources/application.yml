@@ -23,10 +23,12 @@ spring:
     username: redsnoww
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mydb
     password: Leasacha2
-    jpa:
-      hibernate:
-        ddl-auto: update
-      database: mysql
-      database-platform: org.hibernate.dialect.MySQL5Dialect
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      #use-new-id-generator-mappings: false
+    database: mysql
+    #database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hikari:
       driver-class-name: com.mysql.jdbc.Driver

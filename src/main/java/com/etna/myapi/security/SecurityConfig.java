@@ -72,7 +72,7 @@ public class SecurityConfig {
                                 .requestMatchers("/myapi/videos/**").permitAll()
 
                                 // get all videos of a user
-                                .requestMatchers("/myapi/user/{id}/videos/**").permitAll()
+                                .requestMatchers("/myapi/user/{id}/video/**").permitAll()
 
                                 // encoding video
                                 .requestMatchers(HttpMethod.PATCH, "/myapi/video/**").permitAll()
