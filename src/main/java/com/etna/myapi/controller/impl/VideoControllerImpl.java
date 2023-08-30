@@ -1,11 +1,11 @@
 package com.etna.myapi.controller.impl;
 
 import com.etna.myapi.controller.VideoControllerInterface;
+import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dataobjects.mappers.VideoObjectMapper;
 import com.etna.myapi.dto.PageDto;
 import com.etna.myapi.dto.VideoResponseDto;
-import com.etna.myapi.dto.VideosPageResponseDto;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
 import com.etna.myapi.services.repository.UserRepository;
@@ -17,7 +17,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,22 +37,16 @@ import static com.etna.myapi.controller.UserControllerInterface.ROOT_INTERFACE;
 @Log4j2
 @RequestMapping(path = ROOT_INTERFACE)
 public class VideoControllerImpl implements VideoControllerInterface {
-
     @Autowired
     UserRepository userRepository;
-
     @Autowired
     VideoRepository videoRepository;
-
     @Autowired
     UserServiceInterface userService;
-
     @Autowired
     VideoServiceInterface videoService;
-
     @Autowired
     VideoObjectMapper videoObjectMapper;
-
     @Autowired
     UserObjectMapper userObjectMapper;
 
@@ -62,6 +55,22 @@ public class VideoControllerImpl implements VideoControllerInterface {
     public ResponseEntity<?> createVideo(Integer id, String name, MultipartFile source) {
         try {
             log.info("Reception de la requête de création d'une vidéo");
+
+            // check if the user exist
+            Optional<User> ouser = userRepository.findById(id);
+
+            if (ouser.isEmpty())
+                return new ResponseEntityBuilder().buildNotFound();
+
+            // check if the user is the owner of the video
+            if (!userService.isUser(id))
+                return new ResponseEntityBuilder().buildForbidden();
+
+            User user = ouser.get();
+
+            // check if file is empty
+            if (source.isEmpty())
+                return new ResponseEntityBuilder().setData(List.of("Le fichier est vide")).buildBadRequest(10001);
 
             // get the extension file
             String extension = Objects.requireNonNull(source.getOriginalFilename()).substring(source.getOriginalFilename().lastIndexOf("."));
@@ -78,15 +87,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
                             && !extension.equals(".mov")
                             && !extension.equals(".mp3")
             )
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Bad Request",
-                                        "code", 10001,
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder()
+                        .setData(List.of())
+                        .buildBadRequest(10001);
 
             // If a file with the same name already exists, we delete it
             File fileToDelete = new File("src/main/resources/videos/" + name + extension);
@@ -107,6 +110,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // create the video Entity
             Video.VideoBuilder video = Video.builder();
 
+            // user
+            video.user(user);
+
             // name
             video.name(name);
 
@@ -121,59 +127,20 @@ public class VideoControllerImpl implements VideoControllerInterface {
             long durationMicroSeconds = demuxer.getDuration();
 
             // Convertion en secondes
-            double durationSeconds = durationMicroSeconds / 1_000_000.0;
+            Double durationSeconds = durationMicroSeconds / 1_000_000.0;
 
-            System.out.println("Durée de la vidéo : " + durationSeconds + " secondes");
+            if (durationSeconds >= 1.00)
+                durationSeconds = 1.00;
 
             demuxer.close();
 
             // Convert Double to int
-            log.debug("Durée de la vidéo : " + (int) durationSeconds + " secondes");
+            log.debug("Durée de la vidéo : " + durationSeconds + " secondes");
 
-            video.duration((int) durationSeconds);
+            video.duration(durationSeconds.intValue());
 
             // created_at
             video.created_at(Date.from(Instant.now()));
-
-            // User by id
-            if (userService.isUser(id)) {
-                if (userRepository.findById(id).isPresent())
-                    video.user(userRepository.findById(id).get());
-                else {
-                    // delete the file if it was created
-                    if (file.exists()) {
-                        if (file.delete())
-                            log.info("Fichier supprimé");
-                        else
-                            log.error("Erreur lors de la suppression du fichier");
-                    }
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                            new HashMap<>(
-                                    Map.of(
-                                            "message", "User not found",
-                                            "data", List.of()
-                                    )
-                            )
-                    );
-                }
-            } else {
-                // delete the file if it was created
-                if (file.exists()) {
-                    if (file.delete())
-                        log.info("Fichier supprimé");
-                    else
-                        log.error("Erreur lors de la suppression du fichier");
-                }
-
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "User not found",
-                                        "data", List.of()
-                                )
-                        )
-                );
-            }
 
             // view
             video.view(0);
@@ -190,14 +157,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
             VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video.build());
 
             // return the video
-            return ResponseEntity.status(HttpStatus.CREATED).body(
-                    new HashMap<>(
-                            Map.of(
-                                    "message", "OK",
-                                    "data", videoResponseDto
-                            )
-                    )
-            );
+            return new ResponseEntityBuilder()
+                    .setData(videoResponseDto)
+                    .buildCreated();
 
 
         } catch (InterruptedException e) {
@@ -247,14 +209,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
                     // if user not found return 404 Not Found
 
                     if (oUser.isEmpty())
-                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                                new HashMap<>(
-                                        Map.of(
-                                                "message", "Not Found",
-                                                "data", List.of()
-                                        )
-                                )
-                        );
+                        return new ResponseEntityBuilder().buildNotFound();
 
                 }
             }
@@ -263,24 +218,20 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // get all videos by user
             Page<Video> videos = videoService.getAllVideo(page, perPage, name, duration, oUser);
 
+            List<VideoResponseDto> videoResponseDto = videos.get()
+                    .sorted(Comparator.comparing(Video::getId).reversed())
+                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                    .toList();
 
-            VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
-                    .message("OK")
-                    .data(
-                            videos.get()
-                                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                                    .collect(Collectors.toList())
-                    )
-                    .pager(
-                            new PageDto().toBuilder()
-                                    .current(videos.getNumber() + 1)
-                                    .total(videos.getTotalPages())
-                                    .build()
-                    )
+            PageDto pager = new PageDto().toBuilder()
+                    .current(videos.getNumber() + 1)
+                    .total(videos.getTotalPages())
                     .build();
 
-            // return 200 OK with data : videos and pagination
-            return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
+            return new ResponseEntityBuilder()
+                    .setData(videoResponseDto)
+                    .setPager(pager)
+                    .buildOk();
 
         } catch (NumberFormatException e) {
             try {
@@ -289,14 +240,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
                 // if user not found return 404 Not Found
                 if (userOptional.isEmpty())
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                            new HashMap<>(
-                                    Map.of(
-                                            "message", "Not Found",
-                                            "data", List.of()
-                                    )
-                            )
-                    );
+                    return new ResponseEntityBuilder().buildNotFound();
 
                 // get all videos by user
                 Page<Video> videos = videoService.getAllVideo(page, perPage, name, duration, userOptional);
@@ -307,23 +251,18 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
                 log.debug("videos : {}", videos.get().collect(Collectors.toList()));
 
-                VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
-                        .message("OK")
-                        .data(
-                                videos.get()
-                                        .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                                        .collect(Collectors.toList())
-                        )
-                        .pager(
-                                new PageDto().toBuilder()
-                                        .current(videos.getNumber() + 1)
-                                        .total(videos.getTotalPages())
-                                        .build()
-                        )
+                List<VideoResponseDto> videoResponseDto = videos.get().map(video -> videoObjectMapper.toCreatedResponseDto(video)).toList();
+
+                PageDto pager = new PageDto().toBuilder()
+                        .current(videos.getNumber() + 1)
+                        .total(videos.getTotalPages())
                         .build();
 
-                // return 200 OK with data : videos and pagination
-                return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
+
+                return new ResponseEntityBuilder()
+                        .setData(videoResponseDto)
+                        .setPager(pager)
+                        .buildOk();
 
             } catch (Exception ex) {
                 return ResponseEntity.status(500).body(
@@ -357,25 +296,11 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
             // if video not found return 404 Not Found
             if (video.isEmpty())
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Not Found",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildNotFound();
 
             // check if the video is the user's video
             if (!userService.isUser(video.get().getUser().getId()))
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Forbidden",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildForbidden();
 
             // delete the file
             File file = new File("src/main/resources/" + video.get().getSource());
@@ -391,7 +316,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
             log.info("Vidéo supprimée en base de données");
 
             // return 200 OK
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntityBuilder().buildDeleted();
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
@@ -415,36 +340,15 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
             // if video not found return 404 Not Found
             if (video.isEmpty())
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Not Found",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildNotFound();
 
             // check if the video is the user's video
             if (!userService.isUser(video.get().getUser().getId()))
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Forbidden",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildForbidden();
 
             // if the userId doesn't exist return 404 Not Found
             if (UserId.isPresent() && userRepository.findById(UserId.get()).isEmpty())
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Not Found",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildNotFound();
 
             // update the video
             if (name.isPresent()) {
@@ -475,14 +379,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
                 // if user not found return 404 Not Found
                 if (user.isEmpty())
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                            new HashMap<>(
-                                    Map.of(
-                                            "message", "Not Found",
-                                            "data", List.of()
-                                    )
-                            )
-                    );
+                    return new ResponseEntityBuilder().buildNotFound();
 
                 video.get().setUser(user.get());
             }
@@ -494,14 +391,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
             VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video.get());
 
             // return 200 OK with data : video
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    new HashMap<>(
-                            Map.of(
-                                    "message", "OK",
-                                    "data", videoResponseDto
-                            )
-                    )
-            );
+            return new ResponseEntityBuilder()
+                    .setData(videoResponseDto)
+                    .buildOk();
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
@@ -525,14 +417,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
             // if user not found return 404 Not Found
             if (user.isEmpty())
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new HashMap<>(
-                                Map.of(
-                                        "message", "Not Found",
-                                        "data", List.of()
-                                )
-                        )
-                );
+                return new ResponseEntityBuilder().buildNotFound();
 
             // get all videos by user
             Page<Video> videos = videoService.getAllVideosByUser(page, perPage, user.get());
@@ -541,23 +426,18 @@ public class VideoControllerImpl implements VideoControllerInterface {
                 log.debug("videos is empty");
 
             // create the VideosPageResponseDto
-            VideosPageResponseDto reponseVideos = new VideosPageResponseDto().toBuilder()
-                    .message("OK")
-                    .data(
-                            videos.get()
-                                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                                    .collect(Collectors.toList())
-                    )
-                    .pager(
-                            new PageDto().toBuilder()
-                                    .current(videos.getNumber() + 1)
-                                    .total(videos.getTotalPages())
-                                    .build()
-                    )
+            List<VideoResponseDto> responseVideos = videos.get()
+                    .sorted(Comparator.comparing(Video::getId).reversed())
+                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                    .toList();
+
+            PageDto pager = new PageDto().toBuilder()
+                    .current(videos.getNumber() + 1)
+                    .total(videos.getTotalPages())
                     .build();
 
             // return 200 OK with data : videos and pagination
-            return ResponseEntity.status(HttpStatus.OK).body(reponseVideos);
+            return new ResponseEntityBuilder().setData(responseVideos).setPager(pager).buildOk();
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
