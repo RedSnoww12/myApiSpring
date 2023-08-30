@@ -29,8 +29,6 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         UserDetails userDetails = null;
 
-        log.debug("Load user by username: " + login);
-
         User user = userRepository.findByUsername(login);
 
         if (user == null) {
@@ -49,7 +47,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 throw new UsernameNotFoundException("User not found");
             }
         }
-        log.info("User found by username: " + login);
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), Collections.emptyList());
     }
 
