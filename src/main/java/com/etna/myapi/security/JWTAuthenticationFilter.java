@@ -66,10 +66,10 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (AuthenticationCredentialsNotFoundException e) {
             log.warn("AuthenticationCredentialsNotFoundException: " + e.getMessage());
-            //response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.addHeader("Content-Type", "application/json");
             response.getWriter().write("{\"message\": \"Unauthorized\"}");
-            // return response with message {"message": "Unauthorized"}
+
 
         }
     }
