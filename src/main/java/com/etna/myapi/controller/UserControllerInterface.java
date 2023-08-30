@@ -33,4 +33,7 @@ public interface UserControllerInterface {
     @PostMapping(path = AUTH)
     ResponseEntity<?> authenticate(@Valid @RequestBody LoginDto request);
 
+    @PutMapping(path = USER_ID)
+    ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UserDto userDto);
+
 }
