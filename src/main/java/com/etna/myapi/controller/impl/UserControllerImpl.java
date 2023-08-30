@@ -2,6 +2,7 @@ package com.etna.myapi.controller.impl;
 
 
 import com.etna.myapi.controller.UserControllerInterface;
+import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dto.*;
 import com.etna.myapi.entity.User;
@@ -28,9 +29,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -68,28 +69,51 @@ public class UserControllerImpl implements UserControllerInterface {
 
 
     public ResponseEntity<?> createUser(UserDto userDto) {
-        try {
-
             if (userDto == null) {
                 log.warn("userDto est null");
-                return null;
+                return new ResponseEntityBuilder()
+                        .setData(List.of())
+                        .buildBadRequest(10001);
             }
             if (userDto.getUsername() == null || userDto.getUsername().isEmpty()) {
                 log.warn("userDto.username est null");
-                return null;
+                return new ResponseEntityBuilder()
+                        .setData(List.of())
+                        .buildBadRequest(10001);
             }
             if (userDto.getEmail() == null || userDto.getEmail().isEmpty()) {
                 log.warn("userDto.email est null");
-                return null;
+                return new ResponseEntityBuilder()
+                        .setData(List.of())
+                        .buildBadRequest(10001);
             }
             if (userDto.getPassword() == null || userDto.getPassword().isEmpty()) {
                 log.warn("userDto.password est null");
-                return null;
+                return new ResponseEntityBuilder()
+                        .setData(List.of())
+                        .buildBadRequest(10001);
             }
 
             log.debug("user.username: {}", userDto.getUsername());
 
-            log.info("recupération d'un userDTO: {}", userDto);
+        log.info("recupération d'un user: {}", userDto);
+
+        // check if user already exist
+        Optional<User> ouser = Optional.ofNullable(userRepository.findByUsername(userDto.getUsername()));
+        if (ouser.isPresent()) {
+            log.warn("user exist with this username");
+            return new ResponseEntityBuilder()
+                    .setData(List.of())
+                    .buildBadRequest(10001);
+        }
+
+        ouser = Optional.ofNullable(userRepository.findByEmail(userDto.getEmail()));
+        if (ouser.isPresent()) {
+            log.warn("user exist with this email");
+            return new ResponseEntityBuilder()
+                    .setData(List.of())
+                    .buildBadRequest(10001);
+        }
 
             // hash password
             String hashedPassword = passwordEncoder.encode(userDto.getPassword());
@@ -115,28 +139,21 @@ public class UserControllerImpl implements UserControllerInterface {
                             .created_at(user.getCreated_at())
                             .build();
 
-            // return ResponseSuccessDto
-            ResponseSuccessDto responseSuccessDto =
-                    new ResponseSuccessDto().toBuilder()
-                            .message("Ok")
-                            .data(userCreatedResponseDto)
-                            .build();
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(responseSuccessDto);
-        } catch (Exception e) {
-            log.warn("Error : {}", e.getMessage());
-        }
-        return null;
+        return new ResponseEntityBuilder().setData(userCreatedResponseDto).buildCreated();
     }
 
     public ResponseEntity<?> AllUser(Optional<String> pseudo, int page, int perPage) {
         boolean isPseudo = true;
         Page<User> users = null;
         if (page <= 0) {
-            return null;
+            return new ResponseEntityBuilder()
+                    .setData(List.of())
+                    .buildBadRequest(10001);
         }
         if (perPage <= 0) {
-            return null;
+            return new ResponseEntityBuilder()
+                    .setData(List.of())
+                    .buildBadRequest(10001);
         }
         if (pseudo.isEmpty() || pseudo.get().isEmpty()) {
             isPseudo = false;
@@ -150,52 +167,51 @@ public class UserControllerImpl implements UserControllerInterface {
             log.debug("users: {}", users.get().collect(Collectors.toList()));
         }
 
+        // sort users by id desc
+        List<User> sortedUsers = users.get()
+                .sorted(Comparator.comparing(User::getId).reversed())
+                .toList();
+
         // if page > total page
         if (page > users.getTotalPages() && users.getTotalPages() > 0) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new HashMap<>(
-                            Map.of(
-                                    "message", "Page out of range",
-                                    "totalPages", String.valueOf(users.getTotalPages())
-                            )
-                    )
-            );
+            return new ResponseEntityBuilder()
+                    .setData(List.of("La page demandée n'existe pas"))
+                    .buildBadRequest(10001);
         }
 
-        UsersPageResponseDto usersPageResponseDto = new UsersPageResponseDto().toBuilder()
-                .message("ok")
-                .data(users.get()
-                        .map(
-                                user -> userObjectMapper.toCreatedResponseDto(user)
-                        )
-                        .collect(Collectors.toList()))
-                .pager(new PageDto().toBuilder()
-                        .current(users.getNumber() + 1)
-                        .total(users.getTotalPages())
-                        .build()
+        List<UserResponseDto> usersResponseDto = sortedUsers.stream()
+                .map(
+                        user -> userObjectMapper.toCreatedResponseDto(user)
                 )
+                .toList();
+
+        PageDto pager = new PageDto().toBuilder()
+                .current(users.getNumber() + 1)
+                .total(users.getTotalPages())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(usersPageResponseDto);
+        return new ResponseEntityBuilder()
+                .setData(usersResponseDto)
+                .setPager(pager)
+                .buildOk();
     }
 
     @Override
     public ResponseEntity<?> getUserById(Integer id) {
         try{
             Optional<User> user = userRepository.findById(id);
+
+            if (user.isEmpty()) {
+                return new ResponseEntityBuilder().buildNotFound();
+            }
+
             // Convert the user to UserResponseDto
             UserResponseDto userResponseDto = userObjectMapper.toCreatedResponseDto(user.get());
-            // return ResponseSuccessDto
-            ResponseSuccessDto responseSuccessDto =
-                    new ResponseSuccessDto().toBuilder()
-                            .message("Ok")
-                            .data(userResponseDto)
-                            .build();
 
-            return ResponseEntity.status(HttpStatus.OK).body(responseSuccessDto);
+            return new ResponseEntityBuilder().setData(userResponseDto).buildOk();
         }catch (Exception e){
             log.warn("Error : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
 
 
@@ -215,9 +231,7 @@ public class UserControllerImpl implements UserControllerInterface {
                         "message": "Not found"
                     }
                 * */
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new HashMap<>(
-                        Map.of("message", "Not found")
-                ));
+                return new ResponseEntityBuilder().buildNotFound();
             }
 
             User user = ouser.get();
@@ -228,29 +242,13 @@ public class UserControllerImpl implements UserControllerInterface {
 
             if (!userUsername.equals(login)
                     && !userEmail.equals(login)) {
-
-                log.debug("userUsername: {}", userUsername);
-                log.debug("userEmail: {}", userEmail);
-                log.debug("login: {}", login);
-
-                log.debug("compare with username: {}", userUsername.equals(login));
-                log.debug("compare with email: {}", userEmail.equals(login));
-
-                /*
-                *   {
-                        "message": "Forbidden"
-                    }
-                * */
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new HashMap<>(
-                        Map.of("message", "Forbidden")
-                ));
+                return new ResponseEntityBuilder().buildForbidden();
             }
 
             // delete user in db
             userRepository.delete(user);
 
-            // Return 204
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+            return new ResponseEntityBuilder().buildDeleted();
 
         } catch (Exception e) {
             log.warn("Error : {}", e.getMessage());
@@ -273,7 +271,7 @@ public class UserControllerImpl implements UserControllerInterface {
             //UserDetails userDetails = userDetailsService.loadUserByUsername(request.getLogin());
 
             String token = jwtGenerator.generateToken(authentication);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponseDto("OK", token));
+            return new ResponseEntityBuilder().setData(token).buildCreated();
 
         } catch (UsernameNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponseDto("Username or password incorrect.", null));

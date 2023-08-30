@@ -1,8 +1,8 @@
 package com.etna.myapi.controller.impl;
 
 import com.etna.myapi.controller.CommentControllerInterface;
+import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dto.CommentDto;
-import com.etna.myapi.dto.CommentsPageResponseDto;
 import com.etna.myapi.dto.PageDto;
 import com.etna.myapi.entity.Comment;
 import com.etna.myapi.entity.User;
@@ -23,10 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.etna.myapi.controller.UserControllerInterface.ROOT_INTERFACE;
 
@@ -59,36 +56,19 @@ public class CommentController implements CommentControllerInterface {
             Optional<Video> ovideo = videoRepository.findById(id);
 
             if (ovideo.isEmpty())
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new HashMap<>(
-                        Map.of("message", "Not found")
-                ));
+                return new ResponseEntityBuilder().buildNotFound();
 
             // check that the body is not null
             if (comment.getBody() == null)
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
-                        Map.of("message", "Bad request",
-                                "code", 10001,
-                                "data", List.of("body is null")
-                        )
-                ));
+                return new ResponseEntityBuilder().setData(List.of("body is null")).buildBadRequest(10001);
 
             // check that the body is not empty
             if (comment.getBody().isEmpty())
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
-                        Map.of("message", "Bad request",
-                                "code", 10001,
-                                "data", List.of("body is empty")
-                        )
-                ));
+                return new ResponseEntityBuilder().setData(List.of("body is empty")).buildBadRequest(10001);
 
             // check that the body is not superior to varchar(255)
             if (comment.getBody().length() > 255)
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
-                        Map.of("message", "Bad request",
-                                "code", 10003,
-                                "data", List.of("body is too long")
-                        )
-                ));
+                return new ResponseEntityBuilder().setData(List.of("body is too long")).buildBadRequest(10001);
 
             User user = userServiceInterface.getUserFromAuth();
 
@@ -101,11 +81,7 @@ public class CommentController implements CommentControllerInterface {
             // save the comment
             commentRepository.save(newComment);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<>(
-                    Map.of("message", "OK",
-                            "data", comment
-                    )
-            ));
+            return new ResponseEntityBuilder().setData(comment.getBody()).buildCreated();
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<>(
@@ -121,20 +97,13 @@ public class CommentController implements CommentControllerInterface {
         Optional<Video> ovideo = videoRepository.findById(id);
 
         if (ovideo.isEmpty())
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new HashMap<>(
-                    Map.of("message", "Not found")
-            ));
+            return new ResponseEntityBuilder().buildNotFound();
 
         Video video = ovideo.get();
 
         // check page and perPage
         if (page < 1 || perPage < 1)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
-                    Map.of("message", "Bad request",
-                            "code", 10001,
-                            "data", List.of("page or perPage is inferior to 1")
-                    )
-            ));
+            return new ResponseEntityBuilder().setData(List.of("page or perPage is inferior to 1")).buildBadRequest(10001);
 
         if (page == 1)
             page = 0;
@@ -147,28 +116,26 @@ public class CommentController implements CommentControllerInterface {
 
         // page out of range
         if (page + 1 > pcomments.getTotalPages())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<>(
-                    Map.of("message", "Bad request",
-                            "code", 10002,
-                            "data", List.of("page out of range")
-                    )
-            ));
+            return new ResponseEntityBuilder().setData(List.of("page out of range")).buildBadRequest(10001);
 
         // Convert the comments to DTO
-        List<CommentDto> commentsDto = pcomments.stream().map(
-                comment -> CommentDto.builder()
+        List<CommentDto> commentsDto = pcomments.stream()
+                .sorted(
+                        Comparator.comparing(Comment::getId)
+                                .reversed()
+                )
+                .map(comment ->
+                        CommentDto.builder()
                         .body(comment.getBody())
                         .build()
-        ).toList();
+                )
+                .toList();
 
-        // create the pagerCommentsDto
-        CommentsPageResponseDto commentsPageResponseDto = CommentsPageResponseDto.builder()
-                .message("OK")
-                .data(commentsDto)
-                .pager(new PageDto().toBuilder().current(page + 1).total(pcomments.getTotalPages()).build())
+        PageDto pageDto = PageDto.builder()
+                .current(page + 1)
+                .total(pcomments.getTotalPages())
                 .build();
 
-
-        return ResponseEntity.status(HttpStatus.OK).body(commentsPageResponseDto);
+        return new ResponseEntityBuilder().setData(commentsDto).setPager(pageDto).buildOk();
     }
 }
