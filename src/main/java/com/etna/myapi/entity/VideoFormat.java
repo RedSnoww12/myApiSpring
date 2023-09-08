@@ -24,8 +24,10 @@ public class VideoFormat {
     @NonNull
     private String uri;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "video_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Video video;
 
 }

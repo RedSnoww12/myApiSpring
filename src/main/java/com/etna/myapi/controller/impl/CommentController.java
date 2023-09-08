@@ -2,8 +2,11 @@ package com.etna.myapi.controller.impl;
 
 import com.etna.myapi.controller.CommentControllerInterface;
 import com.etna.myapi.dataobjects.ResponseEntityBuilder;
+import com.etna.myapi.dataobjects.mappers.CommentObjectMapper;
 import com.etna.myapi.dto.CommentDto;
+import com.etna.myapi.dto.CommentResponseDto;
 import com.etna.myapi.dto.PageDto;
+import com.etna.myapi.dto.RequestUserVariablePageDto;
 import com.etna.myapi.entity.Comment;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
@@ -45,6 +48,8 @@ public class CommentController implements CommentControllerInterface {
     UserServiceInterface userServiceInterface;
     @Autowired
     CommentServiceInterface commentServiceInterface;
+    @Autowired
+    CommentObjectMapper commentObjectMapper;
 
     @Override
     public ResponseEntity<?> createComment(Integer id, CommentDto comment) {
@@ -79,9 +84,11 @@ public class CommentController implements CommentControllerInterface {
                     .build();
 
             // save the comment
-            commentRepository.save(newComment);
+            Comment savedComment = commentRepository.save(newComment);
 
-            return new ResponseEntityBuilder().setData(comment.getBody()).buildCreated();
+            CommentResponseDto commentResponseDto = commentObjectMapper.toCommentResponseDto(savedComment);
+
+            return new ResponseEntityBuilder().setData(commentResponseDto).buildCreated();
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<>(
@@ -92,7 +99,7 @@ public class CommentController implements CommentControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> getCommentsOfVideo(Integer id, int page, int perPage) {
+    public ResponseEntity<?> getCommentsOfVideo(Integer id, Optional<RequestUserVariablePageDto> requestUserVariablePageDto) {
         // get the video by id
         Optional<Video> ovideo = videoRepository.findById(id);
 
@@ -100,6 +107,15 @@ public class CommentController implements CommentControllerInterface {
             return new ResponseEntityBuilder().buildNotFound();
 
         Video video = ovideo.get();
+
+        int page = 1;
+        int perPage = 5;
+
+        if (requestUserVariablePageDto.isPresent()) {
+            if (requestUserVariablePageDto.get().getPage() != null) page = requestUserVariablePageDto.get().getPage();
+            if (requestUserVariablePageDto.get().getPerPage() != null)
+                perPage = requestUserVariablePageDto.get().getPerPage();
+        }
 
         // check page and perPage
         if (page < 1 || perPage < 1)
@@ -114,26 +130,31 @@ public class CommentController implements CommentControllerInterface {
         //List<Comment> comments = video.getComments();
         Page<Comment> pcomments = commentServiceInterface.getAllCommentOfVideo(page, perPage, video);
 
+        int totalPages = pcomments.getTotalPages();
+
+        if (totalPages == 0)
+            totalPages = 1;
+
+
         // page out of range
-        if (page + 1 > pcomments.getTotalPages())
+        if (page + 1 > totalPages)
             return new ResponseEntityBuilder().setData(List.of("page out of range")).buildBadRequest(10001);
 
         // Convert the comments to DTO
-        List<CommentDto> commentsDto = pcomments.stream()
+        List<CommentResponseDto> commentsDto = pcomments.stream()
                 .sorted(
                         Comparator.comparing(Comment::getId)
                                 .reversed()
                 )
-                .map(comment ->
-                        CommentDto.builder()
-                        .body(comment.getBody())
-                        .build()
+                .map(
+                        comment ->
+                                commentObjectMapper.toCommentResponseDto(comment)
                 )
                 .toList();
 
         PageDto pageDto = PageDto.builder()
                 .current(page + 1)
-                .total(pcomments.getTotalPages())
+                .total(totalPages)
                 .build();
 
         return new ResponseEntityBuilder().setData(commentsDto).setPager(pageDto).buildOk();

@@ -32,3 +32,8 @@ spring:
     #database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hikari:
       driver-class-name: com.mysql.jdbc.Driver
+
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB

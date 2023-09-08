@@ -4,10 +4,10 @@ import com.etna.myapi.controller.VideoControllerInterface;
 import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dataobjects.mappers.VideoObjectMapper;
-import com.etna.myapi.dto.PageDto;
-import com.etna.myapi.dto.VideoResponseDto;
+import com.etna.myapi.dto.*;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
+import com.etna.myapi.entity.VideoFormat;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.repository.VideoRepository;
 import com.etna.myapi.services.user.UserServiceInterface;
@@ -129,7 +129,7 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // Convertion en secondes
             Double durationSeconds = durationMicroSeconds / 1_000_000.0;
 
-            if (durationSeconds >= 1.00)
+            if (durationSeconds <= 1.00)
                 durationSeconds = 1.00;
 
             demuxer.close();
@@ -149,12 +149,12 @@ public class VideoControllerImpl implements VideoControllerInterface {
             video.enabled(true);
 
             // save the video in database
-            videoRepository.save(video.build());
+            Video savedVideo = videoRepository.save(video.build());
 
             log.info("Vidéo enregistrée en base de données");
 
             // convert the video to VideoResponseDto
-            VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video.build());
+            VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(savedVideo);
 
             // return the video
             return new ResponseEntityBuilder()
@@ -193,57 +193,98 @@ public class VideoControllerImpl implements VideoControllerInterface {
     }
 
     @Override
-    public ResponseEntity<?> getVideos(int page, int perPage, Optional<String> name, Optional<String> user, Optional<Integer> duration) {
+    public ResponseEntity<?> getVideos(Optional<VideoGetRequestDto> videoGetRequestDto) {
         try {
             log.info("Reception de la requête de récupération des vidéos");
 
+            int page = 1;
+            int perPage = 5;
+
             Optional<User> oUser = Optional.empty();
+            VideoGetRequestDto videoGetRequestDto1;
 
-            // condition user if is an integer or a string
-            if (user.isPresent()) {
-                // if user is an integer
-                if (userService.isUser(Integer.parseInt(user.get())) || !userService.isUser(Integer.parseInt(user.get()))) {
-                    // get user by id
-                    oUser = userRepository.findById(Integer.parseInt(user.get()));
+            if (videoGetRequestDto.isPresent()) {
+                videoGetRequestDto1 = videoGetRequestDto.get();
+                // condition user if is an integer or a string
+                if (videoGetRequestDto1.getUser() != null) {
+                    // if user is an integer
+                    if (userService.isUser(Integer.parseInt(videoGetRequestDto1.getUser())) || !userService.isUser(Integer.parseInt(videoGetRequestDto1.getUser()))) {
+                        // get user by id
+                        oUser = userRepository.findById(Integer.parseInt(videoGetRequestDto1.getUser()));
 
-                    // if user not found return 404 Not Found
+                        // if user not found return 404 Not Found
 
-                    if (oUser.isEmpty())
-                        return new ResponseEntityBuilder().buildNotFound();
+                        if (oUser.isEmpty())
+                            return new ResponseEntityBuilder().buildNotFound();
 
+                    }
                 }
+                if (videoGetRequestDto1.getPage() != null) page = videoGetRequestDto1.getPage();
+                if (videoGetRequestDto1.getPerPage() != null) perPage = videoGetRequestDto1.getPerPage();
+
+
+                // if user found
+                // get all videos by user
+                Page<Video> videos = videoService.getAllVideo(page, perPage, Optional.ofNullable(videoGetRequestDto1.getName()), Optional.ofNullable(videoGetRequestDto1.getDuration()), oUser);
+
+                List<VideoResponseDto> videoResponseDto = videos.get()
+                        .sorted(Comparator.comparing(Video::getId).reversed())
+                        .map(video -> {
+                            VideoResponseDto mvideoResponseDto = videoObjectMapper.toCreatedResponseDto(video);
+                            mvideoResponseDto.setFormat(videoFormatToFormatDto(video.getVideoFormats()));
+                            return mvideoResponseDto;
+                        })
+                        .toList();
+
+                PageDto pager = new PageDto().toBuilder()
+                        .current(videos.getNumber() + 1)
+                        .total(videos.getTotalPages())
+                        .build();
+
+                return new ResponseEntityBuilder()
+                        .setData(videoResponseDto)
+                        .setPager(pager)
+                        .buildOk();
+            } else {
+                Page<Video> videos = videoService.getAllVideo(page, perPage, Optional.empty(), Optional.empty(), Optional.empty());
+
+                List<VideoResponseDto> videoResponseDto = videos.get()
+                        .sorted(Comparator.comparing(Video::getId).reversed())
+                        .map(video -> {
+                            VideoResponseDto mvideoResponseDto = videoObjectMapper.toCreatedResponseDto(video);
+                            mvideoResponseDto.setFormat(videoFormatToFormatDto(video.getVideoFormats()));
+                            return mvideoResponseDto;
+                        })
+                        .toList();
+
+                PageDto pager = new PageDto().toBuilder()
+                        .current(videos.getNumber() + 1)
+                        .total(videos.getTotalPages())
+                        .build();
+
+                return new ResponseEntityBuilder()
+                        .setData(videoResponseDto)
+                        .setPager(pager)
+                        .buildOk();
             }
-
-            // if user found
-            // get all videos by user
-            Page<Video> videos = videoService.getAllVideo(page, perPage, name, duration, oUser);
-
-            List<VideoResponseDto> videoResponseDto = videos.get()
-                    .sorted(Comparator.comparing(Video::getId).reversed())
-                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
-                    .toList();
-
-            PageDto pager = new PageDto().toBuilder()
-                    .current(videos.getNumber() + 1)
-                    .total(videos.getTotalPages())
-                    .build();
-
-            return new ResponseEntityBuilder()
-                    .setData(videoResponseDto)
-                    .setPager(pager)
-                    .buildOk();
-
         } catch (NumberFormatException e) {
             try {
                 // test with string user can be pseudo
-                Optional<User> userOptional = Optional.ofNullable(userRepository.findByPseudo(user.get()));
+                Optional<User> userOptional = Optional.ofNullable(userRepository.findByPseudo(videoGetRequestDto.get().getUser()));
 
                 // if user not found return 404 Not Found
                 if (userOptional.isEmpty())
                     return new ResponseEntityBuilder().buildNotFound();
 
+                int page = 1;
+                int perPage = 5;
+
+                if (videoGetRequestDto.get().getPage() != null) page = videoGetRequestDto.get().getPage();
+                if (videoGetRequestDto.get().getPerPage() != null) perPage = videoGetRequestDto.get().getPerPage();
+
+
                 // get all videos by user
-                Page<Video> videos = videoService.getAllVideo(page, perPage, name, duration, userOptional);
+                Page<Video> videos = videoService.getAllVideo(page, perPage, Optional.ofNullable(videoGetRequestDto.get().getName()), Optional.ofNullable(videoGetRequestDto.get().getDuration()), userOptional);
 
                 // create the VideoResponseDto with mapper
 
@@ -390,6 +431,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // convert the video to VideoResponseDto
             VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video.get());
 
+            // set FormatDto
+            videoResponseDto.setFormat(videoFormatToFormatDto(video.get().getVideoFormats()));
+
             // return 200 OK with data : video
             return new ResponseEntityBuilder()
                     .setData(videoResponseDto)
@@ -428,7 +472,13 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // create the VideosPageResponseDto
             List<VideoResponseDto> responseVideos = videos.get()
                     .sorted(Comparator.comparing(Video::getId).reversed())
-                    .map(video -> videoObjectMapper.toCreatedResponseDto(video))
+                    .map(
+                            video -> {
+                                VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video);
+                                videoResponseDto.setFormat(videoFormatToFormatDto(video.getVideoFormats()));
+                                return videoResponseDto;
+                            }
+                    )
                     .toList();
 
             PageDto pager = new PageDto().toBuilder()
@@ -449,6 +499,76 @@ public class VideoControllerImpl implements VideoControllerInterface {
                     )
             );
         }
+    }
+
+    @Override
+    public ResponseEntity<?> encodeVideo(Integer id, EncodageDto encodageDto) {
+        try {
+            // check if the video exist
+            Optional<Video> ovideo = videoRepository.findById(id);
+
+            if (ovideo.isEmpty())
+                return new ResponseEntityBuilder().buildNotFound();
+
+            Video video = ovideo.get();
+
+            if (encodageDto == null)
+                return new ResponseEntityBuilder().setData(List.of("Le format est vide")).buildBadRequest(10001);
+
+            // check encodageDto
+            if (encodageDto.getFormat() == null || encodageDto.getFormat().isEmpty())
+                return new ResponseEntityBuilder().setData(List.of("Le format est vide")).buildBadRequest(10001);
+
+            // check if encodage.file
+            if (encodageDto.getFile() == null || encodageDto.getFile().isEmpty())
+                return new ResponseEntityBuilder().setData(List.of("Le fichier est vide")).buildBadRequest(10001);
+
+            VideoFormat videoFormat = VideoFormat.builder()
+                    .code(encodageDto.getFormat())
+                    .uri(encodageDto.getFile())
+                    .video(video)
+                    .build();
+
+            video.getVideoFormats().add(videoFormat);
+
+            video = videoRepository.save(video);
+
+            VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(video);
+
+            FormatDto formatDto = videoFormatToFormatDto(video.getVideoFormats());
+
+            videoResponseDto.setFormat(formatDto);
+
+            return new ResponseEntityBuilder().setData(videoResponseDto).buildOk();
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    new HashMap<>(
+                            Map.of(
+                                    "message", "Internal server error : " + e.getMessage(),
+                                    "data", List.of()
+                            )
+                    )
+            );
+        }
+    }
+
+    public static FormatDto videoFormatToFormatDto(List<VideoFormat> videoFormats) {
+        FormatDto formatDto = new FormatDto();
+
+        for (VideoFormat videoFormat : videoFormats) {
+            switch (videoFormat.getCode()) {
+                case "1080" -> formatDto.setResolution1080(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                case "720" -> formatDto.setResolution720(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                case "480" -> formatDto.setResolution480(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                case "360" -> formatDto.setResolution360(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                case "240" -> formatDto.setResolution240(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                case "144" -> formatDto.setResolution144(!videoFormat.getUri().isEmpty() ? videoFormat.getUri() : "");
+                default -> formatDto = null;
+            }
+        }
+
+        return formatDto;
     }
 
 

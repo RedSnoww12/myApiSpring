@@ -1,5 +1,7 @@
 package com.etna.myapi.controller;
 
+import com.etna.myapi.dto.EncodageDto;
+import com.etna.myapi.dto.VideoGetRequestDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,12 +25,7 @@ public interface VideoControllerInterface {
 
     @GetMapping(path = VIDEOS)
     ResponseEntity<?> getVideos(
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "perPage", defaultValue = "5") int perPage,
-            @RequestParam(value = "name") Optional<String> name,
-            // User can be a String or an Integer
-            @RequestParam(value = "user") Optional<String> user,
-            @RequestParam(value = "duration") Optional<Integer> duration
+            @RequestBody Optional<VideoGetRequestDto> videoGetRequestDto
     );
 
     @DeleteMapping(path = VIDEO_ID)
@@ -36,7 +33,7 @@ public interface VideoControllerInterface {
 
     @PutMapping(path = VIDEO_ID)
     ResponseEntity<?> updateVideo(@PathVariable Integer id,
-                                  @RequestParam("name") Optional<String> name,
+                                  @RequestParam("name") Optional<String> name, //TODO: change to RequestBody
                                   @RequestParam("user") Optional<Integer> UserId
     );
 
@@ -45,4 +42,7 @@ public interface VideoControllerInterface {
                                       @RequestParam(value = "page", defaultValue = "1") int page,
                                       @RequestParam(value = "perPage", defaultValue = "5") int perPage
     );
+
+    @PatchMapping(path = VIDEO_ID)
+    ResponseEntity<?> encodeVideo(@PathVariable Integer id, @RequestBody EncodageDto encodageDto);
 }

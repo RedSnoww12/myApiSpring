@@ -35,8 +35,6 @@ public class CustomUserDetailsService implements UserDetailsService {
             log.debug("User not found by username test email: " + login);
             user = userRepository.findByEmail(login);
 
-            log.debug("user: " + user);
-
             if (user != null) {
                 log.debug("User found by email: " + login);
                 userFind = true;
@@ -60,6 +58,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.debug("User found by email: " + user.getEmail());
 
         return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), Collections.emptyList());
+    }
+
+    public UserDetails loadUserById(Integer userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found with id : " + userId));
+
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), Collections.emptyList());
     }
 
     /*private Collection<GrantedAuthority> mapRolesToAuthorities(List<Role> roles) {

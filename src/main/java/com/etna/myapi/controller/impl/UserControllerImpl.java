@@ -23,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -151,22 +152,35 @@ public class UserControllerImpl implements UserControllerInterface {
 
             log.debug("user: {}", user);
 
-            userRepository.save(user);
+        User userCreated = userRepository.save(user);
 
-            UserResponseDto userCreatedResponseDto =
-                    new UserResponseDto().toBuilder()
+        UserResponseDto userCreatedResponseDto = userObjectMapper.toCreatedResponseDto(userCreated);
+                    /*new UserResponseDto().toBuilder()
                             .username(user.getUsername())
                             .email(user.getEmail())
                             .pseudo(user.getPseudo())
                             .created_at(user.getCreated_at())
-                            .build();
+                            .build();*/
 
         return new ResponseEntityBuilder().setData(userCreatedResponseDto).buildCreated();
     }
 
-    public ResponseEntity<?> AllUser(Optional<String> pseudo, int page, int perPage) {
+    public ResponseEntity<?> AllUser(Optional<RequestUserVariablePageDto> requestUserVariablePageDto) {
         boolean isPseudo = true;
         Page<User> users = null;
+        Optional<String> pseudo = Optional.empty();
+
+        int page = 1;
+        int perPage = 5;
+
+        if (requestUserVariablePageDto.isPresent()) {
+            if (requestUserVariablePageDto.get().getPage() != null) page = requestUserVariablePageDto.get().getPage();
+            if (requestUserVariablePageDto.get().getPerPage() != null)
+                perPage = requestUserVariablePageDto.get().getPerPage();
+            if (requestUserVariablePageDto.get().getPseudo() != null)
+                pseudo = Optional.of(requestUserVariablePageDto.get().getPseudo());
+        }
+
         if (page <= 0) {
             return new ResponseEntityBuilder()
                     .setData(List.of())
@@ -181,8 +195,9 @@ public class UserControllerImpl implements UserControllerInterface {
             isPseudo = false;
         }
         if (isPseudo) {
-            log.debug("retrieve with pseudo");
+            log.debug("retrieve with pseudo : {}", pseudo.get());
             users = userService.getAllUser(page - 1, perPage, pseudo.get());
+            log.debug("users: {}", users.get().collect(Collectors.toList()));
         } else {
             log.debug("retrieve without pseudo");
             users = userService.getAllUser(page - 1, perPage);
@@ -290,9 +305,13 @@ public class UserControllerImpl implements UserControllerInterface {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            //UserDetails userDetails = userDetailsService.loadUserByUsername(request.getLogin());
+            // get user from authentication.getName()
+            UserDetails userDetails = userDetailsService.loadUserByUsername(authentication.getName());
 
-            String token = jwtGenerator.generateToken(authentication);
+            // find user by username in db
+            User user = userRepository.findByUsername(userDetails.getUsername());
+
+            String token = jwtGenerator.generateToken(user);
             return new ResponseEntityBuilder().setData(token).buildCreated();
 
         } catch (UsernameNotFoundException e) {
@@ -379,15 +398,15 @@ public class UserControllerImpl implements UserControllerInterface {
 
             log.debug("user: {}", user);
 
-            userRepository.save(user);
+            User savedUser = userRepository.save(user);
 
-            UserResponseDto userCreatedResponseDto =
-                    new UserResponseDto().toBuilder()
+            UserResponseDto userCreatedResponseDto = userObjectMapper.toCreatedResponseDto(savedUser);
+                    /*new UserResponseDto().toBuilder()
                             .username(user.getUsername())
                             .email(user.getEmail())
                             .pseudo(user.getPseudo())
                             .created_at(user.getCreated_at())
-                            .build();
+                            .build();*/
 
             return new ResponseEntityBuilder().setData(userCreatedResponseDto).buildCreated();
 

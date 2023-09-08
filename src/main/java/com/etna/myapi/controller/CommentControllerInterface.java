@@ -1,8 +1,14 @@
 package com.etna.myapi.controller;
 
 import com.etna.myapi.dto.CommentDto;
+import com.etna.myapi.dto.RequestUserVariablePageDto;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.Optional;
 
 import static com.etna.myapi.controller.VideoControllerInterface.VIDEO_ID;
 
@@ -16,7 +22,6 @@ public interface CommentControllerInterface {
 
     @GetMapping(VIDEO_ID + COMMENTS)
     ResponseEntity<?> getCommentsOfVideo(@PathVariable Integer id,
-                                         @RequestParam(value = "page", defaultValue = "1") int page,
-                                         @RequestParam(value = "perPage", defaultValue = "5") int perPage
+                                         @RequestBody Optional<RequestUserVariablePageDto> requestUserVariablePageDto
     );
 }

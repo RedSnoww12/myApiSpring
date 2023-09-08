@@ -31,38 +31,22 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     jakarta.servlet.FilterChain filterChain) throws ServletException, IOException {
         try {
-
-            Boolean testEmail = true;
-            Boolean userFind = false;
-
             String token = getJWTFromRequest(request);
 
             if (StringUtils.hasText(token) && tokenGenerator.validateToken(token)) {
-                String login = tokenGenerator.getLoginFromJWT(token);
+                Integer userId = Integer.parseInt(tokenGenerator.getUserIdFromJWT(token));
 
-                Optional<UserDetails> userDetails = Optional.ofNullable(customUserDetailsService.loadUserByUsername(login));
+                Optional<UserDetails> userDetails = Optional.ofNullable(customUserDetailsService.loadUserById(userId));
 
-                if (userDetails.isPresent()) {
-                    testEmail = false;
-                    userFind = true;
+                if (userDetails.isEmpty()) {
+                    throw new AuthenticationCredentialsNotFoundException("User not found");
                 }
 
-                if (testEmail) {
-                    log.debug("User not found by username: " + login);
-                    userDetails = Optional.ofNullable(customUserDetailsService.loadUserByEmail(login));
-                    log.debug("User found by email: " + login);
+                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails.get(), null,
+                        null);
+                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-                    if (userDetails.isPresent()) {
-                        userFind = true;
-                    }
-                }
-
-                if (userFind) {
-                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails.get(), null,
-                            null);
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
             }
             filterChain.doFilter(request, response);
         } catch (AuthenticationCredentialsNotFoundException e) {

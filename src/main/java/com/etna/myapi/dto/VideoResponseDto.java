@@ -13,6 +13,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 public class VideoResponseDto {
+    private Integer id;
     private String name;
     private Integer duration;
     private UserResponseDto user;
@@ -20,4 +21,5 @@ public class VideoResponseDto {
     private Date created_at;
     private Integer view;
     private Boolean enabled;
+    private FormatDto format;
 }

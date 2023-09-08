@@ -1,6 +1,7 @@
 package com.etna.myapi.controller;
 
 import com.etna.myapi.dto.LoginDto;
+import com.etna.myapi.dto.RequestUserVariablePageDto;
 import com.etna.myapi.dto.UserDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public interface UserControllerInterface {
     ResponseEntity<?> createUser(@RequestBody UserDto userDto);
 
     @GetMapping(path = USERS)
-    ResponseEntity<?> AllUser(@RequestParam() Optional<String> pseudo, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "5") int perPage);
+    ResponseEntity<?> AllUser(@RequestBody Optional<RequestUserVariablePageDto> requestUserVariablePageDto);
 
     @GetMapping(path = USER_ID)
     ResponseEntity<?> getUserById(@PathVariable Integer id);

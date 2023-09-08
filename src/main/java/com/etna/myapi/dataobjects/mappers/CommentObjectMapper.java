@@ -1,16 +1,13 @@
 package com.etna.myapi.dataobjects.mappers;
 
-import com.etna.myapi.dto.VideoResponseDto;
-import com.etna.myapi.entity.Video;
+import com.etna.myapi.dto.CommentResponseDto;
+import com.etna.myapi.entity.Comment;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import org.springframework.stereotype.Component;
 
 @Component
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = "spring")
-public interface VideoObjectMapper {
-
-    VideoResponseDto toCreatedResponseDto(Video video);
-
-    VideoResponseDto toResponseDto(Video video);
+public interface CommentObjectMapper {
+    CommentResponseDto toCommentResponseDto(Comment comment);
 }
