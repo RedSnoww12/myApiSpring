@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.etna</groupId>
 	<artifactId>myapi</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>myapi</name>
 	<description>Développer une API RESTful respectant une architecture logiciel défini par un ensemble de contraintes utilisées pour la création d&apos;un service Web.</description>
 	<properties>

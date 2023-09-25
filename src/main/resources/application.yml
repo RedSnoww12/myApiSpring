@@ -33,6 +33,17 @@ spring:
     hikari:
       driver-class-name: com.mysql.jdbc.Driver
 
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+  jackson:
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+
   servlet:
     multipart:
       max-file-size: 1GB

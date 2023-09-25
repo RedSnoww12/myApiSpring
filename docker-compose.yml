@@ -1,0 +1,41 @@
+version: "3.7"
+
+services:
+  myapi:
+    container_name: myapi-spring
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "8080:8080"
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  mysql:
+    container_name: mysql
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: Leasacha2
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: redsnoww
+      MYSQL_PASSWORD: Leasacha2
+      MYSQL_HOST: mysql
+    volumes:
+      - ./mysql:/var/lib/mysql
+
+networks:
+  backend:
+  frontend:
