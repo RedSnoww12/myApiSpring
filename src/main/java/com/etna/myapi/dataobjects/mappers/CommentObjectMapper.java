@@ -1,6 +1,6 @@
 package com.etna.myapi.dataobjects.mappers;
 
-import com.etna.myapi.dto.CommentResponseDto;
+import com.etna.commondto.dto.CommentResponseDto;
 import com.etna.myapi.entity.Comment;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;

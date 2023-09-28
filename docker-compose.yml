@@ -9,8 +9,21 @@ services:
 
     ports:
       - "8080:8080"
+    environment:
+      APPLICATION_NAME: MyApi
+      MYSQL_HOST: mysql
+    volumes:
+      - shared-public-volume:/public
     depends_on:
       - rabbitmq
+      - mysql
+
+  mail-dev-api:
+    container_name: mail-dev-api
+    image: redsnoww/mail-dev:0.0.1
+    depends_on:
+      - rabbitmq
+      - maildev
 
   rabbitmq:
     container_name: rabbitmq
@@ -21,6 +34,13 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+
+  maildev:
+    container_name: maildev
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+      - "1025:25"
 
   mysql:
     container_name: mysql
@@ -35,6 +55,9 @@ services:
       MYSQL_HOST: mysql
     volumes:
       - ./mysql:/var/lib/mysql
+
+volumes:
+  shared-public-volume:
 
 networks:
   backend:

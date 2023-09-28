@@ -1,7 +1,7 @@
 package com.etna.myapi.controller;
 
-import com.etna.myapi.dto.EncodageDto;
-import com.etna.myapi.dto.VideoGetRequestDto;
+import com.etna.commondto.dto.EncodageDto;
+import com.etna.commondto.dto.VideoGetRequestDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

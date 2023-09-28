@@ -1,12 +1,12 @@
 package com.etna.myapi.controller.impl;
 
+import com.etna.commondto.dto.CommentDto;
+import com.etna.commondto.dto.CommentResponseDto;
+import com.etna.commondto.dto.PageDto;
+import com.etna.commondto.dto.RequestUserVariablePageDto;
 import com.etna.myapi.controller.CommentControllerInterface;
 import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.CommentObjectMapper;
-import com.etna.myapi.dto.CommentDto;
-import com.etna.myapi.dto.CommentResponseDto;
-import com.etna.myapi.dto.PageDto;
-import com.etna.myapi.dto.RequestUserVariablePageDto;
 import com.etna.myapi.entity.Comment;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;

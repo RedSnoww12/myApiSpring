@@ -1,8 +1,8 @@
 package com.etna.myapi.controller;
 
-import com.etna.myapi.dto.LoginDto;
-import com.etna.myapi.dto.RequestUserVariablePageDto;
-import com.etna.myapi.dto.UserDto;
+import com.etna.commondto.dto.LoginDto;
+import com.etna.commondto.dto.RequestUserVariablePageDto;
+import com.etna.commondto.dto.UserDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

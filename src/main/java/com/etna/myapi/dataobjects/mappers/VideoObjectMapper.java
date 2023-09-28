@@ -1,6 +1,7 @@
 package com.etna.myapi.dataobjects.mappers;
 
-import com.etna.myapi.dto.VideoResponseDto;
+
+import com.etna.commondto.dto.VideoResponseDto;
 import com.etna.myapi.entity.Video;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;

@@ -1,13 +1,14 @@
 package com.etna.myapi.controller.impl;
 
+import com.etna.commondto.dto.*;
 import com.etna.myapi.controller.VideoControllerInterface;
 import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
 import com.etna.myapi.dataobjects.mappers.VideoObjectMapper;
-import com.etna.myapi.dto.*;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.entity.Video;
 import com.etna.myapi.entity.VideoFormat;
+import com.etna.myapi.publisher.RabbitMQProducer;
 import com.etna.myapi.services.repository.UserRepository;
 import com.etna.myapi.services.repository.VideoRepository;
 import com.etna.myapi.services.user.UserServiceInterface;
@@ -49,6 +50,8 @@ public class VideoControllerImpl implements VideoControllerInterface {
     VideoObjectMapper videoObjectMapper;
     @Autowired
     UserObjectMapper userObjectMapper;
+    @Autowired
+    RabbitMQProducer rabbitMQProducer;
 
 
     @Override
@@ -119,6 +122,9 @@ public class VideoControllerImpl implements VideoControllerInterface {
             // source
             video.source("videos/" + name + extension);
 
+            log.debug("before demuxer");
+            log.debug("Chemin du fichier : " + file.getAbsolutePath());
+
             // Ouverture du fichier
             Demuxer demuxer = Demuxer.make();
             demuxer.open(file.getAbsolutePath(), null, false, true, null, null);
@@ -155,6 +161,14 @@ public class VideoControllerImpl implements VideoControllerInterface {
 
             // convert the video to VideoResponseDto
             VideoResponseDto videoResponseDto = videoObjectMapper.toCreatedResponseDto(savedVideo);
+
+            // send the video to rabbitmq
+            RabbitMQVideoDto rabbitMQVideoDto = RabbitMQVideoDto.builder()
+                    .video(videoResponseDto)
+                    .path(file.getAbsolutePath())
+                    .build();
+
+            rabbitMQProducer.send(rabbitMQVideoDto);
 
             // return the video
             return new ResponseEntityBuilder()

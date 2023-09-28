@@ -1,7 +1,7 @@
 package com.etna.myapi.controller;
 
-import com.etna.myapi.dto.CommentDto;
-import com.etna.myapi.dto.RequestUserVariablePageDto;
+import com.etna.commondto.dto.CommentDto;
+import com.etna.commondto.dto.RequestUserVariablePageDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

@@ -1,6 +1,6 @@
 package com.etna.myapi.dataobjects;
 
-import com.etna.myapi.dto.PageDto;
+import com.etna.commondto.dto.PageDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 

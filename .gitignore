@@ -36,3 +36,6 @@ build/
 ### Spring Boot ###
 target/
 logs/
+
+### volume docker ###
+mysql/

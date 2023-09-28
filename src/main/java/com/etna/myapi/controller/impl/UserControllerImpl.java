@@ -1,10 +1,10 @@
 package com.etna.myapi.controller.impl;
 
 
+import com.etna.commondto.dto.*;
 import com.etna.myapi.controller.UserControllerInterface;
 import com.etna.myapi.dataobjects.ResponseEntityBuilder;
 import com.etna.myapi.dataobjects.mappers.UserObjectMapper;
-import com.etna.myapi.dto.*;
 import com.etna.myapi.entity.User;
 import com.etna.myapi.security.CustomUserDetailsService;
 import com.etna.myapi.security.JWTGenerator;
