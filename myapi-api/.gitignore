@@ -31,8 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-.mysql
-mysql
-logs
-solrdata
