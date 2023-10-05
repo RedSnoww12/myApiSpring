@@ -3,9 +3,7 @@ version: "3.7"
 services:
   myapi:
     container_name: myapi-spring
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: redsnoww/myapi:latest
 
     ports:
       - "8080:8080"
@@ -13,7 +11,7 @@ services:
       APPLICATION_NAME: MyApi
       MYSQL_HOST: mysql
     volumes:
-      - shared-public-volume:/public
+      - shared-public-volume:/src/main/resources/videos
     depends_on:
       - rabbitmq
       - mysql
@@ -27,16 +25,26 @@ services:
       - rabbitmq
       - mysql
       - myapi
+      - elasticsearch
+    restart: always
 
-  solr:
-    image: solr:latest
+  elasticsearch:
+    container_name: elasticsearch-container
+    image: elasticsearch:7.8.1
+    user: "1000:1000"
+    environment:
+      - discovery.type=single-node
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
-      - "8983:8983"
+      - "9200:9200"
     volumes:
-      - ./solrdata:/var/solr
-    command:
-      - solr-precreate
-      - mycore
+      - ./esdata1:/usr/share/elasticsearch/data
 
   mail-dev-api:
     container_name: mail-dev-api
@@ -49,8 +57,8 @@ services:
     container_name: rabbitmq
     image: rabbitmq:3-management
     ports:
-      - "15672:15672"
       - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -76,9 +84,22 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
 
+  worker:
+    container_name: worker
+    image: obungak47/encoderworker:latest
+    depends_on:
+      - rabbitmq
+      - mysql
+      - myapi
+      - elasticsearch
+    restart: always
+    volumes:
+      - shared-public-volume:/Ressources/Videos
+    networks:
+      - backend
+
 volumes:
   shared-public-volume:
 
 networks:
   backend:
-  frontend:
